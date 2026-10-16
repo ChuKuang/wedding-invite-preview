@@ -1,0 +1,50 @@
+<include src="/templates/music.wxml" />
+<view class="page">
+
+  <view class="pic hero">
+    <image src="{{cfg.wishHero.photo}}" mode="aspectFill" />
+    <view class="veil"></view><view class="shade"></view>
+    <view class="txt">
+      <view class="t1 serif">{{total}} 句 贺 词</view>
+      <view class="t2">{{T.heroSub}}</view>
+    </view>
+  </view>
+
+  <view class="bar">
+    <text>已收到 <text class="n">{{total}}</text> 条<text wx:if="{{voiceCount}}"> · 其中 <text class="n">{{voiceCount}}</text> 条语音</text></text>
+    <text class="go" bindtap="goRsvp">{{T.addBtn}}</text>
+  </view>
+
+  <!-- 录音入口 -->
+  <view wx:if="{{canVoice}}" class="rec-bar {{recording?'rec':''}}" bindtap="onToggleRec">
+    <view class="mic"><image src="/images/ico-mic.png" /></view>
+    <view class="rtext">
+      <view class="rt">{{recording ? T.recDoing : T.recIdle}}</view>
+      <view class="rs" wx:if="{{!recording}}">{{T.recHint}}</view>
+      <view class="rs" wx:else>已录 {{recSec}} 秒 · 最多 60 秒</view>
+    </view>
+    <view class="wave" wx:if="{{recording}}"><i wx:for="{{bars}}" wx:for-item="b" wx:key="*this" style="height:{{b}}rpx"></i></view>
+  </view>
+
+  <view class="list">
+    <view class="wcard" wx:for="{{list}}" wx:key="_id">
+      <view class="h">
+        <view class="av pic"><image src="{{item.avatar || defAvatar}}" mode="aspectFill" /></view>
+        <view class="meta">
+          <view class="n">{{item.name}}</view>
+          <view class="t">{{item.timeText}}</view>
+        </view>
+      </view>
+      <view class="c" wx:if="{{item.content}}">{{item.content}}</view>
+      <view class="v" wx:if="{{item.type==='voice'}}" data-i="{{index}}" bindtap="playVoice">
+        <view class="play"><image src="/images/ico-play.png" /></view>
+        <view class="w"><i wx:for="{{item.bars}}" wx:for-item="b" wx:key="*this" style="height:{{b}}rpx"></i></view>
+        <view class="dur">{{item.durationText || '0:10'}}</view>
+      </view>
+    </view>
+
+    <view class="empty" wx:if="{{!list.length && !loading}}">还没有人留言 · 来当第一个</view>
+  </view>
+
+  <view class="pad"></view>
+</view>

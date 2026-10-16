@@ -1,0 +1,34 @@
+<view class="cover">
+  <view class="pic cover-bg">
+    <image src="{{cfg.cover.photo}}" mode="aspectFill" />
+    <view class="veil"></view>
+    <view class="shade"></view>
+  </view>
+
+  <!-- 婚帖金线框 -->
+  <view class="border"></view>
+
+  <view class="in">
+    <view class="kicker serif">{{cfg.cover.kicker}}</view>
+
+    <!-- 竖排姓名，中间一枚「囍」 -->
+    <view class="names serif">
+      <view class="vname">{{cfg.couple.groom}}</view>
+      <view class="seal lg">囍</view>
+      <view class="vname">{{cfg.couple.bride}}</view>
+    </view>
+
+    <view class="line"><view class="ln"></view><view class="dia"></view><view class="ln"></view></view>
+    <view class="date serif">{{cfg.wedding.dateCN}}</view>
+    <view class="lunar">{{cfg.wedding.lunar}} · {{cfg.wedding.weekday}}</view>
+    <view class="place">{{cfg.venue.city}} · {{cfg.venue.name}}</view>
+    <view class="words serif">{{cfg.cover.words}}</view>
+  </view>
+
+  <view class="hint" bindtap="open">
+    <view class="pill serif">轻 触 启 封</view>
+  </view>
+
+  <!-- 管理入口：连点 5 次进设置 -->
+  <view class="v" bindtap="tapVersion">v1.0</view>
+</view>

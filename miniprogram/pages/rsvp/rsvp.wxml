@@ -1,0 +1,108 @@
+<include src="/templates/music.wxml" />
+<view class="page">
+
+  <!-- ============ 表单态 ============ -->
+  <view wx:if="{{!done}}">
+    <view class="pic hero">
+      <image src="{{cfg.rsvpHero.photo}}" mode="aspectFill" />
+      <view class="veil"></view><view class="shade"></view>
+      <view class="txt">
+        <view class="t1 serif">{{cfg.wedding.dayNum}} · 恭候光临</view>
+        <view class="t2">{{T.heroSub}} · {{deadlineText}}前回帖</view>
+      </view>
+    </view>
+
+    <!-- 第一问 -->
+    <view class="field">
+      <view class="qa serif"><i></i>{{T.qAttend}}</view>
+      <view class="opts">
+        <view class="opt {{att==='yes'?'on':''}}" data-att="yes" bindtap="pickAtt">
+          <image class="oi" src="{{iconSmile}}" />
+          <text class="ob serif">{{T.yes[0]}}</text>
+          <text class="os">{{T.yes[1]}}</text>
+        </view>
+        <view class="opt {{att==='no'?'on':''}}" data-att="no" bindtap="pickAtt">
+          <image class="oi" src="{{iconMail}}" />
+          <text class="ob serif">{{T.no[0]}}</text>
+          <text class="os">{{T.no[1]}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 来：人数 / 称呼 / 手机 -->
+    <block wx:if="{{att==='yes'}}">
+      <view class="field">
+        <view class="qa serif"><i></i>{{T.qCount}}</view>
+        <view class="who">
+          <view class="w {{cnt==1?'on':''}}" data-n="1" bindtap="pickCnt">
+            <image class="wi" src="{{whoIcon[0]}}" /><text>{{T.counts[0]}}</text>
+          </view>
+          <view class="w {{cnt==2?'on':''}}" data-n="2" bindtap="pickCnt">
+            <image class="wi" src="{{whoIcon[1]}}" /><text>{{T.counts[1]}}</text>
+          </view>
+          <view class="w {{cnt==3?'on':''}}" data-n="3" bindtap="pickCnt">
+            <image class="wi" src="{{whoIcon[2]}}" /><text>{{T.counts[2]}}</text>
+          </view>
+          <view class="w {{cnt==4?'on':''}}" data-n="4" bindtap="pickCnt">
+            <image class="wi" src="{{whoIcon[3]}}" /><text>{{T.counts[3]}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="field">
+        <view class="lb">如 何 称 呼 <text class="req">*</text></view>
+        <input class="ipt" value="{{name}}" bindinput="onName" placeholder="{{T.namePh}}" placeholder-class="ph" maxlength="20" />
+      </view>
+      <view class="field">
+        <view class="lb">手 机 号 <text class="lo">选填</text></view>
+        <input class="ipt" value="{{phone}}" bindinput="onPhone" type="number" placeholder="{{T.phonePh}}" placeholder-class="ph" maxlength="11" />
+        <view class="hintline">{{T.phoneHint}}</view>
+      </view>
+    </block>
+
+    <!-- 不来：给台阶 -->
+    <block wx:if="{{att==='no'}}">
+      <view class="warm-note serif">
+        {{T.noNote}}<br/>
+        {{T.noNote2}}<text class="k">{{T.noNoteEm}}</text>。
+      </view>
+      <view class="field" wx:if="{{showAddr}}">
+        <view class="lb">{{T.addrLabel}} <text class="lo">选填</text></view>
+        <input class="ipt" value="{{addr}}" bindinput="onAddr" placeholder="{{T.addrPh}}" placeholder-class="ph" maxlength="60" />
+      </view>
+      <view class="field">
+        <view class="lb">如 何 称 呼 <text class="req">*</text></view>
+        <input class="ipt" value="{{name}}" bindinput="onName" placeholder="{{T.namePh2}}" placeholder-class="ph" maxlength="20" />
+      </view>
+    </block>
+
+    <!-- 留言 -->
+    <view class="field">
+      <view class="lb">留 句 贺 词 <text class="lo">选填</text></view>
+      <textarea class="ipt area" value="{{msg}}" bindinput="onMsg" placeholder="{{T.msgPh}}" placeholder-class="ph" maxlength="200" auto-height="{{false}}" />
+      <view class="counter">{{msg.length}}/200</view>
+    </view>
+
+    <view class="btn submit" bindtap="submit">{{submitting ? '发 送 中…' : T.submit}}</view>
+    <view class="tip">{{T.tip}}</view>
+  </view>
+
+  <!-- ============ 提交后：回执卡 ============ -->
+  <view wx:else class="done">
+    <view class="done-ico"><view class="seal lg">囍</view></view>
+    <view class="done-t serif">{{doneTitle}}</view>
+    <view class="done-s serif">{{doneSub}}</view>
+
+    <view class="done-card frame">
+      <view class="dr"><text>称呼</text><text class="b serif">{{name}}</text></view>
+      <view class="dr" wx:if="{{att==='yes'}}"><text>到场</text><text class="b serif">{{cntText}}</text></view>
+      <view class="dr"><text>日期</text><text class="b serif">{{cfg.wedding.dateCN}}</text></view>
+      <view class="dr"><text>地点</text><text class="b serif">{{cfg.venue.name}} · {{cfg.venue.hall}}</text></view>
+    </view>
+
+    <image class="sign-img" src="{{cfg.letter.signImage || '/images/sign.png'}}" mode="widthFix" />
+    <view class="again" bindtap="again">{{T.again}}</view>
+  </view>
+
+  <view class="pad"></view>
+</view>

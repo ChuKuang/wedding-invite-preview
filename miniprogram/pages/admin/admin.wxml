@@ -1,0 +1,129 @@
+<view class="page">
+
+  <!-- 身份状态 -->
+  <view class="status {{isAdmin?'ok':'no'}}">
+    <view class="s-t">{{isAdmin ? '管理员已登录' : (hasAdmin ? '你没有权限' : '还没有管理员')}}</view>
+    <view class="s-d" wx:if="{{isAdmin}}">下面改完点保存，所有宾客立即看到，不用重新发版</view>
+    <view class="s-d" wx:elif="{{hasAdmin}}">这个微信号不在白名单里。换管理员的微信号打开本页即可。</view>
+    <view class="s-d" wx:else>第一个打开本页的人可以认领管理员，认领后只有这个微信能改。</view>
+    <view class="s-id" wx:if="{{openid}}">你的身份：<text class="mono">{{openid}}</text></view>
+    <view class="acts" wx:if="{{!isAdmin}}">
+      <view class="btn sm" wx:if="{{!hasAdmin}}" bindtap="claim">认 领 管 理 员</view>
+      <view class="btn sm ghost" bindtap="copyOpenid">复制身份</view>
+    </view>
+  </view>
+
+  <!-- 分区 -->
+  <scroll-view class="tabs" scroll-x>
+    <view class="tw">
+      <view class="t {{tab===item.id?'on':''}}" wx:for="{{tabs}}" wx:key="id" data-tab="{{item.id}}" bindtap="switchTab">{{item.name}}</view>
+    </view>
+  </scroll-view>
+
+  <!-- 表单 -->
+  <block wx:if="{{tab!=='trip' && tab!=='rsvp'}}">
+    <view class="grp" wx:for="{{groups}}" wx:for-item="g" wx:for-index="gi" wx:key="name">
+      <view class="g-t">{{g.name}}</view>
+      <view class="f" wx:for="{{g.items}}" wx:for-item="it" wx:for-index="ii" wx:key="key">
+        <view class="f-l">{{it.label}}</view>
+
+        <input wx:if="{{it.type==='text'}}" class="f-i" value="{{it.value}}" data-gi="{{gi}}" data-ii="{{ii}}"
+               bindinput="onField" placeholder="{{it.ph || ''}}" placeholder-class="f-ph" />
+        <input wx:elif="{{it.type==='number'}}" class="f-i" type="digit" value="{{it.value}}" data-gi="{{gi}}" data-ii="{{ii}}"
+               bindinput="onField" placeholder="{{it.ph || ''}}" placeholder-class="f-ph" />
+        <textarea wx:elif="{{it.type==='area'}}" class="f-i f-a" value="{{it.value}}" data-gi="{{gi}}" data-ii="{{ii}}"
+                  bindinput="onField" placeholder="{{it.ph || ''}}" placeholder-class="f-ph" auto-height />
+        <textarea wx:elif="{{it.type==='lines'}}" class="f-i f-a" value="{{it.value}}" data-gi="{{gi}}" data-ii="{{ii}}"
+                  bindinput="onField" placeholder="一行一条" placeholder-class="f-ph" auto-height />
+        <textarea wx:elif="{{it.type==='rows'}}" class="f-i f-a mono" value="{{it.value}}" data-gi="{{gi}}" data-ii="{{ii}}"
+                  bindinput="onField" placeholder="{{it.ph}}" placeholder-class="f-ph" auto-height />
+
+        <view wx:elif="{{it.type==='photo'}}" class="f-p">
+          <input class="f-i" value="{{it.value}}" data-gi="{{gi}}" data-ii="{{ii}}"
+                 bindinput="onField" placeholder="云存储 fileID 或 /images/…" placeholder-class="f-ph" />
+          <view class="up" data-gi="{{gi}}" data-ii="{{ii}}" bindtap="upload">选图</view>
+        </view>
+
+        <view wx:elif="{{it.type==='audio'}}">
+          <input class="f-i" value="{{it.value}}" data-gi="{{gi}}" data-ii="{{ii}}"
+                 bindinput="onField" placeholder="云存储 fileID 或 https 音乐链接；留空不放音乐" placeholder-class="f-ph" />
+          <view class="au-acts">
+            <view class="up" data-gi="{{gi}}" data-ii="{{ii}}" bindtap="uploadAudio">选音乐</view>
+            <view class="up" data-gi="{{gi}}" data-ii="{{ii}}" bindtap="tryAudio">{{trying ? '停止' : '试听'}}</view>
+            <view class="up off" data-gi="{{gi}}" data-ii="{{ii}}" bindtap="clearAudio">不要音乐</view>
+          </view>
+        </view>
+
+        <view class="f-h" wx:if="{{it.type==='audio'}}">先把 mp3 发到微信「文件传输助手」，再点「选音乐」从聊天记录里选，10MB 以内。宾客点「启封」后开始播放，右上角可随时关掉。</view>
+        <view class="f-h" wx:if="{{it.type==='rows'}}">用 <text class="mono">|</text> 分隔字段，一行一条</view>
+        <view class="f-h" wx:if="{{it.type==='lines'}}">一行一条</view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 相册照片 -->
+  <block wx:if="{{tab==='trip'}}">
+    <view class="grp">
+      <view class="g-t">相册照片（{{trips.length}} 张）</view>
+      <view class="trip" wx:for="{{trips}}" wx:key="index">
+        <view class="th">
+          <text class="tn">第 {{index+1}} 张</text>
+          <text class="del" data-i="{{index}}" bindtap="delTrip">删除</text>
+        </view>
+        <input class="f-i" value="{{item.loc}}" data-i="{{index}}" data-k="loc"
+               bindinput="onTripField" placeholder="标题（如 2021.07 · 青海湖、第一次一起做饭）" placeholder-class="f-ph" />
+        <textarea class="f-i f-a" value="{{item.word}}" data-i="{{index}}" data-k="word"
+                  bindinput="onTripField" placeholder="想说的一两句话（可留空）" placeholder-class="f-ph" auto-height />
+        <view class="f-p">
+          <input class="f-i" value="{{item.photo}}" data-i="{{index}}" data-k="photo"
+                 bindinput="onTripField" placeholder="图片 fileID" placeholder-class="f-ph" />
+          <view class="up" data-ti="{{index}}" data-tk="photo" bindtap="upload">选图</view>
+        </view>
+      </view>
+      <view class="add" bindtap="addTrip">＋ 加一张</view>
+    </view>
+  </block>
+
+  <!-- 回执 -->
+  <block wx:if="{{tab==='rsvp'}}">
+    <view class="grp" wx:if="{{stat}}">
+      <view class="g-t">统计</view>
+      <view class="stat">
+        <view class="si"><text class="sn">{{stat.people}}</text><text class="sl">到场人数</text></view>
+        <view class="si"><text class="sn">{{stat.yes}}</text><text class="sl">回复到场</text></view>
+        <view class="si"><text class="sn">{{stat.no}}</text><text class="sl">回复缺席</text></view>
+        <view class="si"><text class="sn">{{stat.tables}}</text><text class="sl">约需桌数</text></view>
+      </view>
+      <view class="exps">
+        <view class="exp" bindtap="exportFile">导出表格文件</view>
+        <view class="exp off" bindtap="exportRsvp">复制为文本</view>
+      </view>
+      <view class="exp-h">导出会生成一份 Excel 能打开的表格，发给「文件传输助手」，电脑上直接打开即可。含称呼、人数、手机、收喜糖地址、贺词和回帖时间。</view>
+    </view>
+
+    <view class="grp">
+      <view class="g-t">全部回执（{{rsvpList.length}}）</view>
+      <view class="ri" wx:for="{{rsvpList}}" wx:key="_id">
+        <view class="rh">
+          <text class="tag {{item.attend==='yes'?'y':'n'}}">{{item.attend==='yes'?'到场':'缺席'}}</text>
+          <text class="rn">{{item.name}}</text>
+          <text class="rc" wx:if="{{item.attend==='yes'}}">{{item.count}} 人</text>
+          <text class="rt">{{item.timeText}}</text>
+        </view>
+        <view class="rm" wx:if="{{item.phone}}">手机 {{item.phone}}</view>
+        <view class="rm" wx:if="{{item.addr}}">地址 {{item.addr}}</view>
+        <view class="rw" wx:if="{{item.message}}">{{item.message}}</view>
+      </view>
+      <view class="empty" wx:if="{{!rsvpList.length && !rsvpLoading}}">还没有人回复</view>
+    </view>
+  </block>
+
+  <view class="pad"></view>
+</view>
+
+<!-- 底部操作 -->
+<view class="bar">
+  <view class="b-back" bindtap="back">返回</view>
+  <view wx:if="{{tab!=='rsvp'}}" class="b-save {{isAdmin?'':'off'}}" bindtap="save">{{saving ? '保存中…' : '保 存 并 生 效'}}</view>
+  <view wx:else class="b-save" bindtap="loadRsvp">{{rsvpLoading ? '刷新中…' : '刷 新 回 执'}}</view>
+</view>

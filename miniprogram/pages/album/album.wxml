@@ -1,0 +1,33 @@
+<include src="/templates/music.wxml" />
+<view class="page">
+  <view class="head">
+    <view class="sec-title">{{hero.head || '我 们 的 时 光'}}</view>
+    <view class="sec-en" wx:if="{{hero.headEn !== ''}}">{{hero.headEn || 'Our Moments'}}</view>
+  </view>
+
+  <!-- 头图 -->
+  <view class="pic hero">
+    <image src="{{hero.photo}}" mode="aspectFill" />
+    <view class="veil"></view><view class="shade"></view>
+    <view class="txt">
+      <view class="t1 serif">{{hero.title}}</view>
+      <view class="t2">{{hero.sub}}</view>
+    </view>
+  </view>
+
+  <!-- 照片流：一屏一张 -->
+  <view class="mm">
+    <view class="mcard" wx:for="{{trips}}" wx:key="loc">
+      <view class="pic" data-i="{{index}}" bindtap="preview">
+        <image src="{{item.photo}}" mode="aspectFill" lazy-load />
+        <view class="veil"></view>
+      </view>
+      <view class="b">
+        <view class="loc serif">{{item.loc}}</view>
+        <view class="word serif">{{item.word}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="pad"></view>
+</view>

@@ -1,0 +1,9 @@
+<!-- 背景音乐开关：唱片 + 唱臂。播放时唱臂落下、唱片转动、外圈泛起波纹；关闭时唱臂抬起、唱片停住 -->
+<view wx:if="{{hasMusic}}" class="bgm {{musicOn ? 'on' : ''}}" catchtap="toggleMusic">
+  <view class="bgm-wave"></view>
+  <view class="bgm-disc">
+    <view class="bgm-shine"></view>
+    <view class="bgm-label"></view>
+  </view>
+  <view class="bgm-arm"></view>
+</view>

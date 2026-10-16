@@ -1,0 +1,63 @@
+{
+  "pages": [
+    "pages/cover/cover",
+    "pages/invite/invite",
+    "pages/album/album",
+    "pages/rsvp/rsvp",
+    "pages/wish/wish",
+    "pages/map/map",
+    "pages/admin/admin"
+  ],
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#F6F0E4",
+    "navigationBarTitleText": "我们的婚礼",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#ECE3D3"
+  },
+  "tabBar": {
+    "color": "#A0948A",
+    "selectedColor": "#A33328",
+    "backgroundColor": "#FBF8F1",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/invite/invite",
+        "text": "请柬",
+        "iconPath": "images/tab/invite_off.png",
+        "selectedIconPath": "images/tab/invite_on.png"
+      },
+      {
+        "pagePath": "pages/album/album",
+        "text": "相册",
+        "iconPath": "images/tab/album_off.png",
+        "selectedIconPath": "images/tab/album_on.png"
+      },
+      {
+        "pagePath": "pages/rsvp/rsvp",
+        "text": "回帖",
+        "iconPath": "images/tab/rsvp_off.png",
+        "selectedIconPath": "images/tab/rsvp_on.png"
+      },
+      {
+        "pagePath": "pages/wish/wish",
+        "text": "贺词",
+        "iconPath": "images/tab/wish_off.png",
+        "selectedIconPath": "images/tab/wish_on.png"
+      }
+    ]
+  },
+  "requiredPrivateInfos": [
+    "getLocation",
+    "openLocation",
+    "chooseLocation"
+  ],
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于在地图上展示婚礼地点与导航"
+    }
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

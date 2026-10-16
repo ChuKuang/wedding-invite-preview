@@ -1,0 +1,38 @@
+<view class="page">
+  <view class="mapwrap">
+    <map
+      class="map"
+      latitude="{{venue.latitude}}"
+      longitude="{{venue.longitude}}"
+      scale="{{venue.scale}}"
+      markers="{{markers}}"
+      polyline="{{polyline}}"
+      show-location
+      enable-poi
+      bindmarkertap="onMarker"
+    ></map>
+    <view class="pin">
+      <view class="lbl serif">{{venue.name}} · {{venue.hall}}</view>
+    </view>
+  </view>
+
+  <view class="addr">
+    <view class="t">{{venue.address}}<text class="s">{{venue.addressTip}}</text></view>
+    <view class="copy" bindtap="copy">复制</view>
+  </view>
+
+  <view class="card routes">
+    <view class="r" wx:for="{{routes}}" wx:key="title">
+      <view class="i"><image src="{{item.iconPath}}" /></view>
+      <view class="b">
+        <view class="rt">{{item.title}}</view>
+        <view class="rd">{{item.desc}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="btn nav" bindtap="nav">打 开 地 图 导 航</view>
+  <view class="btn ghost sub" bindtap="call">找 不 到 就 打 给 我 · {{contact.phone}}</view>
+
+  <view class="pad"></view>
+</view>

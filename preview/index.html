@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>婚礼请柬 · 本地预览</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --paper: #EDE5D6; --paper-2: #E4D9C6; --ink: #2F2724; --ink-2: #6B5F57; --ink-3: #A0948A;
+    --accent: #A33328; --line: #D8CBB4; --gold: #B4935A;
+    --serif: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', 'SimSun', serif;
+    --sans: 'PingFang SC', -apple-system, 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--paper); color: var(--ink); font-family: var(--sans);
+    background-image: radial-gradient(circle at 78% 18%, rgba(255,255,255,.55), transparent 55%);
+    overflow: hidden;
+  }
+
+  /* ---------- 版式：左说明 / 右手机 ---------- */
+  .pv { height: 100%; display: flex; align-items: center; justify-content: center; gap: 72px; padding: 24px 40px; }
+  .pv-side { width: 300px; flex-shrink: 0; }
+  .pv-kicker { font-size: 11px; letter-spacing: .42em; color: var(--gold); text-transform: uppercase; }
+  .pv-title { font-family: var(--serif); font-size: 30px; font-weight: 600; letter-spacing: .08em; margin: 14px 0 6px; }
+  .pv-sub { font-size: 13px; line-height: 1.9; color: var(--ink-2); }
+  .pv-rule { display: flex; align-items: center; gap: 10px; margin: 26px 0 18px; }
+  .pv-rule i { flex: 1; height: 1px; background: var(--gold); opacity: .5; }
+  .pv-rule b { width: 6px; height: 6px; background: var(--accent); transform: rotate(45deg); }
+  .pv-list { list-style: none; padding: 0; margin: 0; }
+  .pv-page {
+    display: flex; align-items: baseline; gap: 14px; width: 100%; padding: 9px 12px; margin: 0 -12px;
+    border: 0; background: none; border-radius: 10px; cursor: pointer; text-align: left;
+    font: inherit; color: var(--ink); transition: background .15s;
+  }
+  .pv-page:hover { background: rgba(255,255,255,.45); }
+  .pv-page .n { font-family: var(--serif); font-size: 12px; color: var(--ink-3); width: 16px; }
+  .pv-page .t { font-family: var(--serif); font-size: 15px; letter-spacing: .12em; }
+  .pv-page .d { font-size: 12px; color: var(--ink-3); margin-left: auto; }
+  .pv-page.on { background: #FBF8F1; box-shadow: inset 2px 0 0 var(--accent), 0 2px 10px rgba(80,50,30,.06); }
+  .pv-page.on .t { color: var(--accent); }
+  .pv-tips { margin-top: 22px; font-size: 12px; line-height: 2; color: var(--ink-2); }
+  .pv-side code { font-size: 11px; background: rgba(255,255,255,.6); padding: 1px 6px; border-radius: 4px; }
+  .pv-reset {
+    margin-top: 16px; border: 1px solid var(--line); background: transparent; color: var(--ink-2);
+    font: inherit; font-size: 12px; padding: 7px 14px; border-radius: 20px; cursor: pointer; letter-spacing: .06em;
+  }
+  .pv-reset:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ---------- 手机 ---------- */
+  .pv-holder { flex-shrink: 0; position: relative; }
+  .pv-phone {
+    position: absolute; left: 0; top: 0; transform-origin: 0 0;
+    width: 399px; height: 836px; padding: 12px; border-radius: 58px; background: #2B211C;
+    box-shadow: 0 0 0 1.5px #4A3C36 inset, 0 40px 80px -20px rgba(47,39,36,.45), 0 12px 30px rgba(47,39,36,.18);
+  }
+  .wx-screen {
+    position: relative; width: 375px; height: 812px; border-radius: 46px; overflow: hidden;
+    display: flex; flex-direction: column; background: #fff; isolation: isolate;
+  }
+  .wx-island { position: absolute; z-index: 60; top: 10px; left: 50%; width: 110px; height: 30px; margin-left: -55px; border-radius: 20px; background: #000; }
+  .wx-status {
+    height: 47px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 30px 0 34px; font: 600 15px/1 -apple-system, 'Helvetica Neue', sans-serif; z-index: 50;
+  }
+  .wx-status .icons { display: flex; gap: 6px; align-items: center; }
+  .wx-status svg { fill: currentColor; }
+  .wx-nav {
+    height: 44px; flex-shrink: 0; position: relative; display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 500; z-index: 40;
+  }
+  .wx-back { position: absolute; left: 4px; top: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .wx-back svg { width: 12px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+  #wx-nav-title { max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wx-capsule {
+    position: absolute; z-index: 55; right: 7px; top: 53px; height: 32px; width: 87px; border-radius: 16px;
+    display: flex; align-items: center; background: rgba(255,255,255,.6); border: .5px solid rgba(0,0,0,.08);
+  }
+  .wx-capsule div { flex: 1; height: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .wx-capsule .more::before { content: '•••'; font-size: 10px; letter-spacing: 1px; color: #000; }
+  .wx-capsule .close::before { content: ''; width: 14px; height: 14px; border-radius: 50%; border: 2.5px solid #000; box-sizing: border-box; box-shadow: inset 0 0 0 2.5px #fff, inset 0 0 0 6px #000; }
+  .wx-capsule i { width: .5px; height: 18px; background: rgba(0,0,0,.15); }
+  .custom-nav .wx-capsule { background: rgba(0,0,0,.18); border-color: rgba(255,255,255,.25); }
+  .custom-nav .wx-capsule .more::before { color: #fff; }
+  .custom-nav .wx-capsule .close::before { border-color: #fff; box-shadow: inset 0 0 0 2.5px transparent, inset 0 0 0 6px #fff; }
+  .custom-nav .wx-capsule i { background: rgba(255,255,255,.35); }
+  .custom-nav .wx-status { position: absolute; left: 0; right: 0; top: 0; }
+  .custom-nav .wx-nav { display: none; }
+
+  .wx-body { flex: 1; position: relative; transform: translateZ(0); overflow: hidden; }
+  .wx-scroll { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; overscroll-behavior: contain; }
+  .wx-scroll::-webkit-scrollbar { display: none; }
+  .wx-tabbar { height: 82px; flex-shrink: 0; display: flex; border-top: .5px solid; padding-bottom: 32px; z-index: 30; }
+  .wx-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; user-select: none; }
+  .wx-tab img { width: 24px; height: 24px; }
+  .wx-tab span { font-size: 10px; }
+  .wx-home { position: absolute; z-index: 70; bottom: 8px; left: 50%; width: 134px; height: 5px; margin-left: -67px; border-radius: 3px; background: rgba(0,0,0,.85); pointer-events: none; }
+  .custom-nav .wx-home { background: rgba(255,255,255,.7); }
+
+  /* ---------- 浮层 ---------- */
+  #wx-layer, #wx-toast { position: absolute; inset: 0; z-index: 80; pointer-events: none; }
+  #wx-layer > *, #wx-toast > * { pointer-events: auto; }
+  .wx-mask { position: absolute; inset: 0; background: rgba(0,0,0,.5); }
+  .wx-mask.clear { background: transparent; }
+  .wx-toast {
+    position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); min-width: 120px; max-width: 260px;
+    padding: 22px 16px 16px; border-radius: 10px; background: rgba(17,17,17,.78); color: #fff;
+    font-size: 15px; text-align: center; line-height: 1.5; pointer-events: none;
+  }
+  .wx-toast.text { padding: 10px 16px; min-width: 0; }
+  .wx-toast-ico { width: 40px; height: 40px; margin: 0 auto 10px; }
+  .wx-toast-ico.success { border: 3px solid #fff; border-radius: 50%; position: relative; }
+  .wx-toast-ico.success::after { content: ''; position: absolute; left: 12px; top: 5px; width: 9px; height: 18px; border: solid #fff; border-width: 0 3px 3px 0; transform: rotate(45deg); }
+  .wx-toast-ico.loading { border: 3px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: wxspin .8s linear infinite; }
+  .wx-toast-ico.error { border: 3px solid #fff; border-radius: 50%; }
+  @keyframes wxspin { to { transform: rotate(360deg); } }
+  .wx-modal-wrap { position: absolute; inset: 0; }
+  .wx-modal {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 300px;
+    background: #fff; border-radius: 12px; overflow: hidden; text-align: center; font-family: var(--sans);
+  }
+  .wx-modal-t { padding: 30px 24px 8px; font-size: 17px; font-weight: 600; color: #000; }
+  .wx-modal-c { padding: 8px 24px 28px; font-size: 15px; line-height: 1.6; color: rgba(0,0,0,.55); white-space: pre-line; }
+  .wx-modal-t + .wx-modal-b { margin-top: 20px; }
+  .wx-modal-b { display: flex; border-top: .5px solid rgba(0,0,0,.1); }
+  .wx-modal-b div { flex: 1; height: 54px; line-height: 54px; font-size: 17px; font-weight: 600; cursor: pointer; }
+  .wx-modal-b div + div { border-left: .5px solid rgba(0,0,0,.1); }
+  .wx-viewer { position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .wx-viewer img { max-width: 100%; max-height: 100%; }
+  .wx-viewer-n { position: absolute; top: 60px; left: 0; right: 0; text-align: center; color: #fff; font-size: 14px; }
+  .wx-viewer-tip { position: absolute; bottom: 40px; left: 0; right: 0; text-align: center; color: rgba(255,255,255,.5); font-size: 12px; }
+  .pv-err { padding: 120px 30px; text-align: center; font-size: 14px; line-height: 1.9; color: #8C7A6E; }
+  .pv-err code { background: #F5EFE7; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+
+  /* ---------- 小程序基础组件默认样式（零优先级，页面 wxss 可以覆盖） ---------- */
+  :where(.wx-page) { display: block; min-height: 100%; font-size: 16px; line-height: normal; }
+  :where(.wx-page .wx-view) { display: block; }
+  :where(.wx-page .wx-image) { display: inline-block; width: 320px; height: 240px; overflow: hidden; }
+  :where(.wx-page .wx-mode-aspectFill) { object-fit: cover; }
+  :where(.wx-page .wx-mode-aspectFit) { object-fit: contain; }
+  :where(.wx-page .wx-mode-scaleToFill) { object-fit: fill; }
+  .wx-page .wx-mode-widthFix { height: auto !important; }
+  .wx-page .wx-mode-heightFix { width: auto !important; }
+  :where(.wx-page .wx-input, .wx-page .wx-textarea) {
+    display: block; border: 0; outline: 0; background: transparent; font: inherit; color: inherit;
+    padding: 0; margin: 0; resize: none; -webkit-appearance: none; appearance: none;
+  }
+  :where(.wx-page .wx-input) { height: 1.4em; min-height: 1.4em; }
+  :where(.wx-page .wx-textarea) { width: 300px; height: 150px; overflow: auto; }
+  :where(.wx-page .wx-input, .wx-page .wx-textarea)::placeholder { color: #999; }
+  :where(.wx-page .wx-button) { font: inherit; border: 0; background: none; padding: 0; color: inherit; }
+  :where(.wx-page i) { font-style: normal; }
+  .wx-page .wx-tappable { cursor: pointer; }
+  .wx-page .wx-image:not([src]) { visibility: hidden; }
+
+  /* ---------- 窄屏：直接全屏，像真手机 ---------- */
+  @media (max-width: 760px) {
+    body { overflow: auto; }
+    .pv { padding: 0; display: block; height: 100%; }
+    .pv-side { display: none; }
+    .pv-holder { width: 100% !important; height: 100% !important; }
+    .pv-phone { position: static; transform: none !important; width: 100%; height: 100%; padding: 0; border-radius: 0; box-shadow: none; }
+    .wx-screen { width: 100%; height: 100%; border-radius: 0; }
+    .wx-island, .wx-home { display: none; }
+  }
+</style>
+<style id="wx-css"></style>
+</head>
+<body>
+<div class="pv">
+  <aside class="pv-side">
+    <div class="pv-kicker">Local Preview</div>
+    <div class="pv-title">喜帖 · 预览</div>
+    <div class="pv-sub">直接读取 <code>miniprogram/</code> 下的真实页面代码渲染。改了 <code>config/wedding.js</code> 或页面文件，刷新这里就能看到。</div>
+    <div class="pv-rule"><i></i><b></b><i></i></div>
+    <ul class="pv-list">
+      <li><button class="pv-page" data-route="pages/cover/cover"><span class="n">0</span><span class="t">封面</span><span class="d">轻触启封</span></button></li>
+      <li><button class="pv-page" data-route="pages/invite/invite"><span class="n">1</span><span class="t">请柬</span><span class="d">婚帖正文</span></button></li>
+      <li><button class="pv-page" data-route="pages/album/album"><span class="n">2</span><span class="t">相册</span><span class="d">照片与独白</span></button></li>
+      <li><button class="pv-page" data-route="pages/rsvp/rsvp"><span class="n">3</span><span class="t">回帖</span><span class="d">出席回执</span></button></li>
+      <li><button class="pv-page" data-route="pages/wish/wish"><span class="n">4</span><span class="t">贺词</span><span class="d">祝福墙</span></button></li>
+      <li><button class="pv-page" data-route="pages/map/map"><span class="n">5</span><span class="t">导航</span><span class="d">二级页</span></button></li>
+      <li><button class="pv-page" data-route="pages/admin/admin"><span class="n">6</span><span class="t">后台</span><span class="d">连点 v1.0 五次</span></button></li>
+    </ul>
+    <div class="pv-tips">
+      云函数在浏览器里模拟，回执、祝福、后台改动都存在本机，不会上传。<br>
+      贺词墙里的 4 条是示例留言；地图是示意图，导航会打开高德网页版。
+    </div>
+    <button class="pv-reset" id="pv-reset">清空模拟数据，重新开始</button>
+  </aside>
+
+  <div class="pv-holder" id="pv-holder">
+    <div class="pv-phone" id="pv-phone">
+      <div class="wx-screen">
+        <div class="wx-island"></div>
+        <div class="wx-status">
+          <span class="wx-time">9:41</span>
+          <span class="icons">
+            <svg width="18" height="11" viewBox="0 0 18 11"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="6" rx="1"/><rect x="10" y="2.5" width="3" height="8.5" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/></svg>
+            <svg width="16" height="11" viewBox="0 0 16 11"><path d="M8 2.2c2.3 0 4.4.9 6 2.4l1.2-1.2A10 10 0 0 0 8 .5 10 10 0 0 0 .8 3.4L2 4.6a8.5 8.5 0 0 1 6-2.4zm0 3.4c1.4 0 2.6.5 3.6 1.4l1.2-1.2A6.8 6.8 0 0 0 8 3.9a6.8 6.8 0 0 0-4.8 1.9L4.4 7c1-.9 2.2-1.4 3.6-1.4zM8 9a1.6 1.6 0 0 1 1.2.5L8 10.8 6.8 9.5A1.6 1.6 0 0 1 8 9z"/></svg>
+            <svg width="27" height="12" viewBox="0 0 27 12"><rect x=".5" y=".5" width="22" height="11" rx="3" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="19" height="8" rx="2"/><rect x="24" y="4" width="2" height="4" rx="1" opacity=".4"/></svg>
+          </span>
+        </div>
+        <div class="wx-nav">
+          <div class="wx-back"><svg viewBox="0 0 12 20"><path d="M10 2 2 10l8 8"/></svg></div>
+          <span id="wx-nav-title"></span>
+        </div>
+        <div class="wx-capsule"><div class="more"></div><i></i><div class="close"></div></div>
+        <div class="wx-body"><div class="wx-scroll"></div></div>
+        <div class="wx-tabbar" style="display:none"></div>
+        <div class="wx-home"></div>
+        <div id="wx-layer"></div>
+        <div id="wx-toast"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.WXP_ROOT = '../miniprogram';
+
+  (function fit() {
+    const holder = document.getElementById('pv-holder');
+    const phone = document.getElementById('pv-phone');
+    const resize = () => {
+      if (innerWidth <= 760) return;
+      const s = Math.min(1, (innerHeight - 40) / 836);
+      phone.style.transform = 'scale(' + s + ')';
+      holder.style.width = 399 * s + 'px';
+      holder.style.height = 836 * s + 'px';
+    };
+    addEventListener('resize', resize);
+    resize();
+  })();
+</script>
+<script src="wxml.js?v=4"></script>
+<script src="wx.js?v=4"></script>
+<script src="runtime.js?v=4"></script>
+<script>
+  document.querySelectorAll('.pv-page').forEach((b) => {
+    b.onclick = () => {
+      const r = b.dataset.route;
+      const app = WXP.getApp();
+      if (r === 'pages/cover/cover') {
+        if (app) app.globalData.opened = false;
+        WXP.reLaunch({ url: '/' + r });
+      } else if (WXP.tabRoutes().indexOf(r) > -1) {
+        WXP.switchTab({ url: '/' + r });
+      } else {
+        if (app) app.globalData.opened = true;
+        WXP.navigateTo({ url: '/' + r });
+      }
+    };
+  });
+  document.getElementById('pv-reset').onclick = () => {
+    wx.showModal({
+      title: '清空模拟数据',
+      content: '会清掉本机预览里的回执、祝福、管理员认领和后台改动。',
+      success: (r) => {
+        if (!r.confirm) return;
+        WXP_RESET().then(() => {
+          location.hash = '';
+          location.reload();
+        });
+      },
+    });
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<include src="/templates/music.wxml" />
+<view class="page">
+
+  <!-- Hero：旅拍大图 -->
+  <view class="hero pic">
+    <image src="{{cfg.heroPhoto}}" mode="aspectFill" />
+    <view class="veil"></view><view class="shade"></view>
+    <view class="hero-cap">
+      <view class="ht"><i></i>{{cfg.cover.kicker}}</view>
+      <view class="hn serif">{{cfg.couple.groom}} · {{cfg.couple.bride}}</view>
+    </view>
+  </view>
+
+  <!-- 一封亲笔信 -->
+  <view class="letter frame">
+    <view class="hi serif">{{cfg.letter.title}}</view>
+    <view class="p serif" wx:for="{{cfg.letter.paragraphs}}" wx:key="*this">{{item}}</view>
+    <view class="sign-row">
+      <image class="sign-img" src="{{cfg.letter.signImage || '/images/sign.png'}}" mode="heightFix" />
+      <view class="sign-r">
+        <view class="sdate serif">{{cfg.letter.signDate}}</view>
+        <view class="seal sm">囍</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 日期 / 时间 -->
+  <view class="dt">
+    <view class="col">
+      <view class="k">吉 日</view>
+      <view class="v serif">{{cfg.wedding.dayNum}}<text class="s">{{cfg.wedding.weekday}} · {{cfg.wedding.lunar}}</text></view>
+    </view>
+    <view class="col">
+      <view class="k">吉 时</view>
+      <view class="v serif">{{cfg.wedding.timeText}}<text class="s">{{cfg.wedding.timeNote ? cfg.wedding.timeNote : '签到留影'}}</text></view>
+    </view>
+  </view>
+
+  <!-- 流程 -->
+  <view class="card sched">
+    <view class="row" wx:for="{{cfg.schedule}}" wx:key="time">
+      <view class="t serif">{{item.time}}</view>
+      <view class="d">{{item.title}}<text class="n">{{item.note}}</text></view>
+    </view>
+  </view>
+
+  <!-- 地点 -->
+  <view class="place">
+    <view class="pic place-pic">
+      <image src="{{cfg.venue.photo}}" mode="aspectFill" />
+      <view class="veil"></view>
+      <view class="over">
+        <text class="b serif">{{cfg.venue.name}}</text>
+        <text class="h">{{cfg.venue.hall}}</text>
+      </view>
+    </view>
+    <view class="place-b">
+      <view class="addr">{{cfg.venue.address}}\n{{cfg.venue.addressTip}}</view>
+      <view class="acts">
+        <view class="btn soft" bindtap="goMap">查 看 地 图</view>
+        <view class="btn" bindtap="goNav">一 键 导 航</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 注意事项 -->
+  <view class="note">
+    <view class="h">几 点 小 事</view>
+    <view class="li" wx:for="{{cfg.tips}}" wx:key="k">
+      <text class="k">· {{item.k}}</text>　{{item.v}}
+    </view>
+  </view>
+
+  <!-- 落款 -->
+  <view class="foot">
+    <image class="sign-img big" src="{{cfg.letter.signImage || '/images/sign.png'}}" mode="widthFix" />
+    <view class="fs">{{cfg.wedding.deadlineText}}前回帖即可 · 好为你留席</view>
+    <view class="to-rsvp" bindtap="goRsvp">即 刻 回 帖 →</view>
+  </view>
+
+  <view class="pad"></view>
+</view>
