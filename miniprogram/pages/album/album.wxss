@@ -18,6 +18,8 @@
 .b { padding: 28rpx 34rpx 32rpx; }
 .loc { font-size: 26rpx; color: var(--sun-dp); letter-spacing: .16em; font-weight: 600; }
 .word {
-  margin-top: 12rpx; font-size: 25rpx; line-height: 1.95;
+  font-size: 25rpx; line-height: 1.95;
   color: var(--ink-2); letter-spacing: .04em; font-family: var(--serif);
 }
+
+.loc + .word { margin-top: 12rpx; }

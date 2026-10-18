@@ -22,9 +22,9 @@
         <image src="{{item.photo}}" mode="aspectFill" lazy-load />
         <view class="veil"></view>
       </view>
-      <view class="b">
-        <view class="loc serif">{{item.loc}}</view>
-        <view class="word serif">{{item.word}}</view>
+      <view class="b" wx:if="{{item.loc || item.word}}">
+        <view class="loc serif" wx:if="{{item.loc}}">{{item.loc}}</view>
+        <view class="word serif" wx:if="{{item.word}}">{{item.word}}</view>
       </view>
     </view>
   </view>
