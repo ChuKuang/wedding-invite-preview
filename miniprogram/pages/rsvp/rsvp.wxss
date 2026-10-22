@@ -88,7 +88,7 @@
 .dr + .dr { border-top: 1rpx solid var(--line); }
 .dr .b { color: var(--ink); font-weight: 600; }
 
-.sign-img { width: 300rpx; margin: 44rpx auto 0; }
+.sign-img { width: 380rpx; height: 140rpx; margin: 44rpx auto 0; }
 .again {
   margin-top: 40rpx; font-size: 23rpx; color: var(--ink-3);
   letter-spacing: .1em; text-decoration: underline; text-underline-offset: 8rpx;

@@ -69,18 +69,11 @@
   }
 
   /* ---------------- 模拟的云数据库 ---------------- */
-  const H = 3600000;
-  const SEED_WISHES = [
-    { _id: 'demo1', name: '阿杰', type: 'text', content: '六年终成眷属，恭喜恭喜！那天我负责把年糕也抱来合影。', createdAt: Date.now() - 2 * H },
-    { _id: 'demo2', name: '小鹿', type: 'voice', content: '', fileID: '', duration: 14, createdAt: Date.now() - 9 * H },
-    { _id: 'demo3', name: '林知的大学室友', type: 'text', content: '当年说好谁先结婚谁请火锅，如今升级成喜宴了，百年好合！', createdAt: Date.now() - 30 * H },
-    { _id: 'demo4', name: '周叔', type: 'text', content: '执子之手，与子偕老。剩下的山，也一起爬完。', createdAt: Date.now() - 4 * 24 * H },
-  ].map((w) => Object.assign({ status: 'pass', openid: 'demo' }, w));
 
   function db() {
     let d = null;
     try { d = JSON.parse(localStorage.getItem(LS + 'db')); } catch (e) { /* 首次 */ }
-    if (!d) d = { config: null, admins: [], rsvp: [], wishes: SEED_WISHES };
+    if (!d) d = { config: null, admins: [], rsvp: [], wishes: [] };
     return d;
   }
   function saveDb(d) {
@@ -371,7 +364,9 @@
         cv.width = Math.round(img.width * k);
         cv.height = Math.round(img.height * k);
         cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-        const url = cv.toDataURL('image/jpeg', 0.82);
+        // PNG 保持 PNG，否则透明底会变黑
+        const url = file.type === 'image/png' ? cv.toDataURL('image/png') : cv.toDataURL('image/jpeg', 0.82);
+        // 模拟 chooseMedia 的 tempFilePath 带扩展名，后面靠它取后缀
         URL.revokeObjectURL(img.src);
         cb(o, true, { type: 'image', tempFiles: [{ tempFilePath: url, size: url.length, fileType: 'image' }] });
       };
@@ -425,6 +420,22 @@
     openSetting: (o) => cb(o, true, { authSetting: {} }),
     getSetting: (o) => cb(o, true, { authSetting: {} }),
     getRecorderManager: recorderManager,
+    getImageInfo(o) {
+      const img = new Image();
+      img.onload = () => cb(o, true, { width: img.naturalWidth, height: img.naturalHeight, path: o.src });
+      img.onerror = () => cb(o, false, { errMsg: 'getImageInfo:fail' });
+      img.src = o.src;
+    },
+    createOffscreenCanvas(opt) {
+      const cv = document.createElement('canvas');
+      cv.width = opt.width; cv.height = opt.height;
+      cv.createImage = () => new Image();
+      return cv;
+    },
+    canvasToTempFilePath(o) {
+      try { cb(o, true, { tempFilePath: o.canvas.toDataURL(o.fileType === 'jpg' ? 'image/jpeg' : 'image/png') }); }
+      catch (e) { cb(o, false, { errMsg: 'canvasToTempFilePath:fail ' + e.message }); }
+    },
     createInnerAudioContext: audioContext,
     setInnerAudioOption: (o) => cb(o, true, {}),
     chooseMessageFile,

@@ -100,7 +100,7 @@
       <view class="dr"><text>地点</text><text class="b serif">{{cfg.venue.name}} · {{cfg.venue.hall}}</text></view>
     </view>
 
-    <image class="sign-img" src="{{cfg.letter.signImage || '/images/sign.png'}}" mode="widthFix" />
+    <image class="sign-img" src="{{cfg.letter.signImage || '/images/sign.png'}}" mode="aspectFit" />
     <view class="again" bindtap="again">{{T.again}}</view>
   </view>
 

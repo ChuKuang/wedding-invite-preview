@@ -16,7 +16,7 @@
     <view class="hi serif">{{cfg.letter.title}}</view>
     <view class="p serif" wx:for="{{cfg.letter.paragraphs}}" wx:key="*this">{{item}}</view>
     <view class="sign-row">
-      <image class="sign-img" src="{{cfg.letter.signImage || '/images/sign.png'}}" mode="heightFix" />
+      <image class="sign-img" src="{{cfg.letter.signImage || '/images/sign.png'}}" mode="aspectFit" />
       <view class="sign-r">
         <view class="sdate serif">{{cfg.letter.signDate}}</view>
         <view class="seal sm">囍</view>
@@ -73,7 +73,7 @@
 
   <!-- 落款 -->
   <view class="foot">
-    <image class="sign-img big" src="{{cfg.letter.signImage || '/images/sign.png'}}" mode="widthFix" />
+    <image class="sign-img big" src="{{cfg.letter.signImage || '/images/sign.png'}}" mode="aspectFit" />
     <view class="fs">{{cfg.wedding.deadlineText}}前回帖即可 · 好为你留席</view>
     <view class="to-rsvp" bindtap="goRsvp">即 刻 回 帖 →</view>
   </view>

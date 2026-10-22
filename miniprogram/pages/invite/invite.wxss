@@ -36,8 +36,9 @@
   margin-top: 44rpx; display: flex; align-items: flex-end; justify-content: space-between;
 }
 .sign-r { display: flex; align-items: center; gap: 14rpx; }
+/* 签名放进固定的横向框里，任何比例的图都不会撑大。白底在后台上传时已抠成透明 */
 .sign-img { height: 88rpx; width: 250rpx; }
-.sign-img.big { width: 300rpx; height: auto; margin: 0 auto; }
+.sign-img.big { width: 380rpx; height: 140rpx; margin: 0 auto; }
 .sdate { font-size: 23rpx; color: var(--ink-2); letter-spacing: .08em; white-space: nowrap; }
 
 /* 日期时间 */

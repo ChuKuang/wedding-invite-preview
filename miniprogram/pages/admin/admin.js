@@ -36,7 +36,7 @@ const SCHEMA = [
       { key: 'letter.title', label: '开头称呼', type: 'text', ph: '见字如晤：' },
       { key: 'letter.paragraphs', label: '正信（一行一段）', type: 'lines', rows: 6 },
       { key: 'letter.signDate', label: '落款日期', type: 'text' },
-      { key: 'letter.signImage', label: '签名图', type: 'photo' },
+      { key: 'letter.signImage', label: '签名图', type: 'photo', original: true, trim: true, hint: '建议用透明底 PNG，或白纸黑字拍照。上传时会自动裁掉四周空白、把白底抠成透明，比例不限，横向（约 3:1）效果最好。别用自带灰白格子的「假透明」图，格子会被当成笔迹留下来。' },
       { key: 'rsvpText.qAttend', label: '回执第一问', type: 'text' },
       { key: 'rsvpText.qCount', label: '回执第二问', type: 'text' },
       { key: 'rsvpText.yes[0]', label: '「来」主文案', type: 'text' },
@@ -292,17 +292,23 @@ Page({
     const ii = +e.currentTarget.dataset.ii;
     const ti = +e.currentTarget.dataset.ti;
     const tk = e.currentTarget.dataset.tk;
+    const it = !tk && this.data.groups[gi] ? this.data.groups[gi].items[ii] : null;
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
-      sizeType: ['compressed'],
+      // 签名要保留 PNG 透明底：「压缩」可能转成 JPG，透明处会变成黑/白底
+      sizeType: it && it.original ? ['original'] : ['compressed'],
       success: (r) => {
         const file = r.tempFiles[0];
         wx.showLoading({ title: '上传中', mask: true });
-        const ext = (file.tempFilePath.split('.').pop() || 'jpg').toLowerCase();
-        const cloudPath = `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        wx.cloud
-          .uploadFile({ cloudPath, filePath: file.tempFilePath })
+        // 签名：先裁掉四周的空白，免得字在框里被缩得很小
+        const prep = it && it.trim ? this.trimImage(file.tempFilePath) : Promise.resolve(file.tempFilePath);
+        prep
+          .then((path) => {
+            const ext = (path.split('.').pop() || 'jpg').toLowerCase();
+            const cloudPath = `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+            return wx.cloud.uploadFile({ cloudPath, filePath: path });
+          })
           .then((up) => {
             wx.hideLoading();
             if (tk) this.setTrip(ti, tk, up.fileID);
@@ -315,6 +321,62 @@ Page({
             wx.showToast({ title: '上传失败', icon: 'none' });
           });
       },
+    });
+  },
+
+  // 裁掉图片四周的透明/近白边，返回新图路径；任何一步失败就用原图
+  trimImage(src) {
+    return new Promise((resolve) => {
+      if (!wx.createOffscreenCanvas) { resolve(src); return; }
+      wx.getImageInfo({
+        src,
+        success: (info) => {
+          try {
+            const k = Math.min(1, 1200 / Math.max(info.width, info.height));
+            const w = Math.round(info.width * k);
+            const h = Math.round(info.height * k);
+            const cv = wx.createOffscreenCanvas({ type: '2d', width: w, height: h });
+            const ctx = cv.getContext('2d');
+            const img = cv.createImage();
+            img.onload = () => {
+              ctx.drawImage(img, 0, 0, w, h);
+              const data = ctx.getImageData(0, 0, w, h);
+              const px = data.data;
+              let x0 = w, y0 = h, x1 = -1, y1 = -1;
+              for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                  const i = (y * w + x) * 4;
+                  const ink = px[i + 3] > 24 && (px[i] < 225 || px[i + 1] < 225 || px[i + 2] < 225);
+                  if (ink) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+                }
+              }
+              if (x1 < 0) { resolve(src); return; }
+              // 近白的底一律抠成透明：白纸照片、白底 JPG 都能直接用，不靠 mix-blend-mode（部分安卓 WebView 不支持）
+              for (let i = 0; i < px.length; i += 4) {
+                const lum = Math.min(px[i], px[i + 1], px[i + 2]);
+                if (lum >= 235) px[i + 3] = 0;
+                else if (lum > 200) px[i + 3] = Math.round(px[i + 3] * (235 - lum) / 35);
+              }
+              ctx.putImageData(data, 0, 0);
+              const pad = Math.round(Math.max(x1 - x0, y1 - y0) * 0.04) + 2;
+              x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad);
+              x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
+              const cw = x1 - x0 + 1;
+              const ch = y1 - y0 + 1;
+              const out = wx.createOffscreenCanvas({ type: '2d', width: cw, height: ch });
+              out.getContext('2d').putImageData(ctx.getImageData(x0, y0, cw, ch), 0, 0);
+              wx.canvasToTempFilePath({
+                canvas: out, fileType: 'png',
+                success: (res) => resolve(res.tempFilePath),
+                fail: () => resolve(src),
+              });
+            };
+            img.onerror = () => resolve(src);
+            img.src = src;
+          } catch (e) { resolve(src); }
+        },
+        fail: () => resolve(src),
+      });
     });
   },
 

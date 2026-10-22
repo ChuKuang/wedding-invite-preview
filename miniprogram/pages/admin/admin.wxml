@@ -54,6 +54,7 @@
           </view>
         </view>
 
+        <view class="f-h" wx:if="{{it.hint}}">{{it.hint}}</view>
         <view class="f-h" wx:if="{{it.type==='audio'}}">先把 mp3 发到微信「文件传输助手」，再点「选音乐」从聊天记录里选，10MB 以内。宾客点「启封」后开始播放，右上角可随时关掉。</view>
         <view class="f-h" wx:if="{{it.type==='rows'}}">用 <text class="mono">|</text> 分隔字段，一行一条</view>
         <view class="f-h" wx:if="{{it.type==='lines'}}">一行一条</view>
