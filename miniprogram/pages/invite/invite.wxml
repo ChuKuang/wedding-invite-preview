@@ -51,7 +51,7 @@
       <view class="veil"></view>
       <view class="over">
         <text class="b serif">{{cfg.venue.name}}</text>
-        <text class="h">{{cfg.venue.hall}}</text>
+        <text class="h" wx:if="{{cfg.venue.hall}}">{{cfg.venue.hall}}</text>
       </view>
     </view>
     <view class="place-b">

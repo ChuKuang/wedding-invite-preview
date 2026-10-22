@@ -11,8 +11,8 @@
       enable-poi
       bindmarkertap="onMarker"
     ></map>
-    <view class="pin">
-      <view class="lbl serif">{{venue.name}} · {{venue.hall}}</view>
+    <view class="pin" wx:if="{{label}}">
+      <view class="lbl serif">{{label}}</view>
     </view>
   </view>
 
