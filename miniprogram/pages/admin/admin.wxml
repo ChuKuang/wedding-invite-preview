@@ -103,7 +103,8 @@
     </view>
 
     <view class="grp">
-      <view class="g-t">全部回执（{{rsvpList.length}}）</view>
+      <view class="g-t">{{rsvpComplete ? '全部回执' : '已加载回执'}}（{{rsvpList.length}}）{{rsvpLoading ? ' · 加载中…' : ''}}</view>
+      <view class="exp-h" wx:if="{{!rsvpComplete && !rsvpLoading}}">名单尚未加载完整，请刷新后再导出。</view>
       <view class="ri" wx:for="{{rsvpList}}" wx:key="_id">
         <view class="rh">
           <text class="tag {{item.attend==='yes'?'y':'n'}}">{{item.attend==='yes'?'到场':'缺席'}}</text>

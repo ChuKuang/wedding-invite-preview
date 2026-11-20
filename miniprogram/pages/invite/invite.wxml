@@ -1,4 +1,6 @@
 <include src="/templates/music.wxml" />
+<!-- 首次进入时从宣纸色淡出，接住封面的过渡；纯 CSS，没有首帧时序问题 -->
+<view class="enter-curtain" wx:if="{{!entered}}"></view>
 <view class="page">
 
   <!-- Hero：旅拍大图 -->
@@ -12,14 +14,14 @@
   </view>
 
   <!-- 一封亲笔信 -->
-  <view class="letter frame">
-    <view class="hi serif">{{cfg.letter.title}}</view>
-    <view class="p serif" wx:for="{{cfg.letter.paragraphs}}" wx:key="*this">{{item}}</view>
-    <view class="sign-row">
+  <view class="letter frame {{fxDone ? '' : 'lt-fx'}}">
+    <view class="hi serif lt" style="animation-delay:.45s">{{cfg.letter.title}}</view>
+    <view class="p serif lt" style="animation-delay:{{0.6 + index * 0.2}}s" wx:for="{{cfg.letter.paragraphs}}" wx:key="*this">{{item}}</view>
+    <view class="sign-row lt" style="animation-delay:{{0.6 + cfg.letter.paragraphs.length * 0.2}}s">
       <image class="sign-img" src="{{cfg.letter.signImage || '/images/sign.png'}}" mode="aspectFit" />
       <view class="sign-r">
         <view class="sdate serif">{{cfg.letter.signDate}}</view>
-        <view class="seal sm">囍</view>
+        <view class="seal sm lt-seal" style="animation-delay:{{0.9 + cfg.letter.paragraphs.length * 0.2}}s">囍</view>
       </view>
     </view>
   </view>

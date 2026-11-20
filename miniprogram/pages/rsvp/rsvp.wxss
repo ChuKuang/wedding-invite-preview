@@ -67,7 +67,7 @@
 }
 
 /* 回执卡 */
-.done { padding: 68rpx 8rpx 0; text-align: center; animation: up .5s cubic-bezier(.22,.8,.3,1); }
+.done { position: relative; padding: 68rpx 8rpx 0; text-align: center; animation: up .5s cubic-bezier(.22,.8,.3,1); }
 @keyframes up { from { opacity: 0; transform: translateY(28rpx); } to { opacity: 1; transform: none; } }
 .done-ico {
   width: 148rpx; height: 148rpx;
@@ -92,4 +92,36 @@
 .again {
   margin-top: 40rpx; font-size: 23rpx; color: var(--ink-3);
   letter-spacing: .1em; text-decoration: underline; text-underline-offset: 8rpx;
+}
+.sync-note { margin-top: 24rpx; font-size: 24rpx; color: var(--sun-dp); text-decoration: underline; }
+/* ============================================================
+   刚提交时：印章轻轻落定，一圈细线由内向外散开，其余内容依次浮现
+   ============================================================ */
+.done.fx .done-ico { position: relative; }
+.done.fx .done-ico .seal { animation: rs-seal .9s .1s cubic-bezier(.2, .7, .3, 1) both; }
+/* 极细的金色圆环，从印章边缘向外散开就消失 */
+.done.fx .done-ico::after {
+  content: ''; position: absolute; left: 50%; top: 50%;
+  width: 148rpx; height: 148rpx; margin: -74rpx 0 0 -74rpx;
+  border-radius: 50%; border: 1rpx solid var(--gold);
+  animation: rs-ring 1.4s .5s ease-out both;
+}
+.done.fx .done-t { animation: rs-in .8s .55s both; }
+.done.fx .done-s { animation: rs-in .8s .75s both; }
+.done.fx .done-card { animation: rs-in 1s .95s both; }
+.done.fx .sign-img { animation: rs-in .8s 1.3s both; }
+.done.fx .again { animation: rs-in .8s 1.5s both; }
+
+@keyframes rs-seal {
+  from { opacity: 0; transform: scale(1.15); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes rs-ring {
+  0%   { opacity: 0; transform: scale(.9); }
+  25%  { opacity: .55; }
+  100% { opacity: 0; transform: scale(1.45); }
+}
+@keyframes rs-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }

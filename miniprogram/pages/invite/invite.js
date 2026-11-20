@@ -2,7 +2,7 @@ const app = getApp();
 const music = require('../../utils/music.js');
 
 Page({
-  data: { cfg: null },
+  data: { cfg: null, entered: false, fxDone: false },
 
   onShow() {
     app.ready((cfg) => {
@@ -15,6 +15,13 @@ Page({
       music.sync(this);
     });
     app.globalData.opened = true;
+  },
+
+  onLoad() {
+    // 淡出动画播完就把这层拿掉
+    setTimeout(() => this.setData({ entered: true }), 700);
+    // 信纸淡入只播一次；播完去掉动画类，切回本页不重播
+    setTimeout(() => this.setData({ fxDone: true }), 4000);
   },
 
   toggleMusic() { music.toggle(); },
@@ -51,7 +58,7 @@ Page({
   onShareTimeline() {
     const c = this.data.cfg;
     return {
-      title: `${c.couple.groom} & ${c.couple.bride} · ${c.wedding.dateText} · ${c.venue.name}`,
+      title: [`${c.couple.groom} & ${c.couple.bride}`, c.wedding.dateText, c.venue.name].filter(Boolean).join(' · '),
       query: '',
       imageUrl: c.cover.photo,
     };

@@ -51,5 +51,27 @@
 }
 .play image { width: 26rpx; height: 30rpx; margin-left: 4rpx; }
 .w { flex: 1; display: flex; align-items: center; gap: 6rpx; height: 48rpx; }
-.w i { display: block; width: 5rpx; border-radius: 3rpx; background: var(--sun); opacity: .55; }
+.w i { display: block; width: 5rpx; border-radius: 3rpx; background: var(--sun); opacity: .35; transition: opacity .2s, background-color .2s; }
+
+/* 播放中：卡片描边变朱砂，已播放的波形变实，按钮外一圈柔光呼吸 */
+.v { border: 1rpx solid transparent; transition: border-color .2s, background-color .2s; }
+.v.on { border-color: rgba(163, 51, 40, .35); background: #F3DED3; }
+.v.on .w i.lit { opacity: 1; background: var(--sun-dp); }
+.v.on .play { animation: vp-pulse 1.6s ease-in-out infinite; }
+.v.on .dur { color: var(--sun-dp); font-weight: 600; }
+@keyframes vp-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(163, 51, 40, .35); }
+  50%      { box-shadow: 0 0 0 12rpx rgba(163, 51, 40, 0); }
+}
+/* 暂停图标：两条竖线 */
+.pause { display: flex; gap: 8rpx; }
+.pause i { display: block; width: 7rpx; height: 26rpx; border-radius: 2rpx; background: #FFF9F3; }
+/* 加载中：小圆圈转动 */
+.spin {
+  width: 28rpx; height: 28rpx; border-radius: 50%;
+  border: 4rpx solid rgba(255, 249, 243, .35); border-top-color: #FFF9F3;
+  animation: vp-spin .8s linear infinite;
+}
+@keyframes vp-spin { to { transform: rotate(360deg); } }
 .dur { font-size: 22rpx; color: var(--ink-2); letter-spacing: .06em; flex-shrink: 0; }
+.more { padding: 36rpx 0; text-align: center; font-size: 24rpx; color: var(--sun-dp); }

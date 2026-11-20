@@ -1,5 +1,6 @@
 const app = getApp();
 const music = require('../../utils/music.js');
+const rsvpSync = require('../../utils/rsvp-sync.js');
 const CNT = { 1: '1 位', 2: '2 位', 3: '3 位', 4: '4 位及以上' };
 
 Page({
@@ -15,6 +16,8 @@ Page({
     msg: '',
     done: false,
     submitting: false,
+    syncPending: false,
+    syncing: false,
     doneTitle: '',
     doneSub: '',
     iconSmile: '/images/ico-smile-on.png',
@@ -29,23 +32,39 @@ Page({
       const d = cfg.wedding.deadline || '';
       const txt = d.replace(/^(\d{4})-(\d{2})-(\d{2})$/, (_, y, m, dd) => `${+m} 月 ${+dd} 日`);
       const T = Object.assign({ addrLabel: '收 喜 糖 的 地 址' }, cfg.rsvpText || {});
+      const v = cfg.venue || {};
       this.setData({
         cfg,
         T,
         deadlineText: txt,
         deadlineDays: this.daysLeft(d),
+        // 场地名、宴会厅哪个没填就不显示，免得多出一个「·」；都没填就用地址
+        venueText: [v.name, v.hall].filter(Boolean).join(' · ') || v.address || '',
       });
       this.syncIcons();
       music.sync(this);
+      // 回执卡标题要用到上面的文案，所以等文案就绪后再恢复
+      if (this._needRestore) { this._needRestore = false; this.restore(); }
+      else if (this.data.done) this.showDone(false);
     });
   },
 
   toggleMusic() { music.toggle(); },
 
   onLoad() {
-    // 已回执过直接进入回执卡，避免重复填报
-    this.restore();
+    // 已回执过直接进入回执卡；真正恢复放在 onShow 里文案就绪之后
+    this._needRestore = true;
+    this._unsubscribe = rsvpSync.subscribe((s) => {
+      const wasPending = this.data.syncPending;
+      this.setData({ syncPending: s.pending, syncing: s.syncing });
+      if (this.data.done && this.data.cfg && wasPending !== s.pending) this.showDone(wasPending && !s.pending);
+      if (s.wishError) wx.showToast({ title: s.wishError, icon: 'none' });
+    });
   },
+
+  onUnload() { this._unloaded = true; if (this._unsubscribe) this._unsubscribe(); },
+
+  retrySync() { rsvpSync.sync(); },
 
   daysLeft(d) {
     if (!d) return 0;
@@ -57,14 +76,18 @@ Page({
   restore() {
     const saved = wx.getStorageSync('rsvp');
     if (saved && saved.name) {
+      // 存的是提交给云函数的字段：attend / count / message
+      const att = saved.attend || saved.att || 'yes';
+      const cnt = saved.count || saved.cnt || 1;
       this.setData({
-        att: saved.att || 'yes',
-        cnt: saved.cnt || 1,
-        cntText: CNT[saved.cnt || 1],
+        att,
+        cnt,
+        cntText: CNT[cnt] || CNT[1],
         name: saved.name,
         phone: saved.phone || '',
         addr: saved.addr || '',
-      });
+        msg: saved.message || '',
+      }, () => this.syncIcons());
       this.showDone(false);
     }
   },
@@ -120,48 +143,32 @@ Page({
       phone: phone.trim(),
       addr: addr.trim(),
       message: msg.trim(),
-      openid: app.globalData.openid,
     };
 
-    // 先本地落，保证离线也能看到回执卡
-    wx.setStorageSync('rsvp', payload);
-    if (msg.trim()) this.postWish(name.trim(), msg.trim());
-
-    this.saveToCloud(payload);
+    try {
+      rsvpSync.enqueue(payload);
+    } catch (e) {
+      this.setData({ submitting: false });
+      wx.showToast({ title: '暂存失败，请再试一次', icon: 'none' });
+      return;
+    }
+    this.showDone(false);
+    rsvpSync.sync().finally(() => { if (!this._unloaded) this.setData({ submitting: false }); });
   },
 
-  saveToCloud(payload) {
-    wx.cloud
-      .callFunction({ name: 'addRsvp', data: payload })
-      .then(() => { this.setData({ submitting: false }); this.showDone(true); })
-      .catch((err) => {
-        console.warn('回执未上云（可能未部署云函数）', err);
-        this.setData({ submitting: false });
-        this.showDone(true);
-        wx.showToast({ title: '已记录，稍后同步', icon: 'none' });
-      });
-  },
-
-  // 留言同步到祝福墙
-  postWish(name, content) {
-    wx.cloud
-      .callFunction({ name: 'addWish', data: { name, content, type: 'text' } })
-      .then(() => { app.globalData.wishes = []; })
-      .catch((err) => console.warn('留言未上墙', err));
-  },
-
-  showDone() {
+  showDone(fresh) {
     const { name, att, cntText, T } = this.data;
     this.setData({
+      celebrate: !!fresh && !this.data.syncPending,
       done: true,
-      doneTitle: (att === 'yes' ? T.doneYes : T.doneNo) + name,
-      doneSub: att === 'yes' ? T.doneYesSub : T.doneNoSub,
+      doneTitle: (this.data.syncPending ? '回帖待送出，' : ((att === 'yes' ? T.doneYes : T.doneNo) || '')) + name,
+      doneSub: this.data.syncPending ? '已暂存在这台设备，联网后自动重试' : ((att === 'yes' ? T.doneYesSub : T.doneNoSub) || ''),
       cntText,
     });
   },
 
   again() {
-    this.setData({ done: false });
+    this.setData({ done: false, celebrate: false });
   },
 
   onShareAppMessage() {

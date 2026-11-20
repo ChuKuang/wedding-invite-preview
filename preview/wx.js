@@ -86,6 +86,17 @@
     return id;
   }
 
+  function pageOf(all, ev, timeKey, max) {
+    const limit = Math.min(max, Math.max(1, parseInt(ev.limit, 10) || max));
+    const ordered = all.slice().sort((a, b) => (b[timeKey] - a[timeKey]) || (a._id < b._id ? 1 : a._id > b._id ? -1 : 0));
+    const c = ev.cursor;
+    if (c && (!Number.isFinite(c[timeKey]) || typeof c.id !== 'string' || !c.id)) throw new Error('分页参数无效');
+    const rest = c ? ordered.filter((x) => x[timeKey] < c[timeKey] || (x[timeKey] === c[timeKey] && x._id < c.id)) : ordered.slice(Math.max(0, parseInt(ev.skip, 10) || 0));
+    const list = rest.slice(0, limit);
+    const last = list[list.length - 1];
+    return { list, hasMore: rest.length > limit, nextCursor: last ? { [timeKey]: last[timeKey], id: last._id } : null };
+  }
+
   const FUNCS = {
     getConfig() {
       const d = db();
@@ -119,7 +130,7 @@
       if (!name) return { ok: false, err: '缺少称呼' };
       const attend = ev.attend === 'no' ? 'no' : 'yes';
       const doc = {
-        _id: 'r' + Date.now(), openid: ev.openid || openid(), name, attend,
+        _id: 'r-' + openid(), openid: openid(), name, attend,
         count: attend === 'yes' ? Math.min(20, Math.max(1, parseInt(ev.count, 10) || 1)) : 0,
         phone: String(ev.phone || '').slice(0, 11), addr: String(ev.addr || '').slice(0, 120),
         message: String(ev.message || '').slice(0, 200), updatedAt: Date.now(),
@@ -132,33 +143,60 @@
     addWish(ev) {
       const d = db();
       const type = ev.type === 'voice' ? 'voice' : 'text';
+      const status = type === 'voice' ? 'pending' : (d.config && d.config.features && d.config.features.wishNeedReview ? 'review' : 'pass');
       const content = String(ev.content || '').trim().slice(0, 200);
+      // 回帖附带的贺词：每人一条，覆盖或撤下（与云函数一致）
+      if (ev.source === 'rsvp' && type === 'text') {
+        const i = d.wishes.findIndex((x) => x.openid === openid() && x.source === 'rsvp');
+        if (!content) { if (i > -1) d.wishes.splice(i, 1); saveDb(d); return { ok: true, removed: i > -1 }; }
+        if (i > -1) {
+          Object.assign(d.wishes[i], { content, status, name: String(ev.name || '一位朋友').slice(0, 20), updatedAt: Date.now() });
+          saveDb(d);
+          return { ok: true, status, updated: true };
+        }
+      }
       if (type === 'text' && !content) return { ok: false, err: '内容为空' };
+      const id = 'w' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
       d.wishes.push({
-        _id: 'w' + Date.now(), openid: openid(), status: 'pass', type, content,
+        source: ev.source === 'rsvp' ? 'rsvp' : undefined,
+        _id: id, openid: openid(), status, type, content,
         name: String(ev.name || '一位朋友').slice(0, 20), fileID: ev.fileID || '',
         duration: Math.min(60, parseInt(ev.duration, 10) || 0), createdAt: Date.now(),
       });
       saveDb(d);
-      return { ok: true, status: 'pass' };
+      // 预览只模拟异步审核，通过后刷新/下拉可看到；不调用真实微信审核。
+      if (type === 'voice') setTimeout(() => {
+        const latest = db();
+        const row = latest.wishes.find((x) => x._id === id);
+        if (row && row.status === 'pending') {
+          row.status = latest.config && latest.config.features && latest.config.features.wishNeedReview ? 'review' : 'pass';
+          row.auditPassed = true;
+          saveDb(latest);
+          const app = window.WXP && window.WXP.getApp();
+          if (app) { app.globalData.wishes = []; app.globalData.wishesPage = null; }
+        }
+      }, 900);
+      return { ok: true, status };
     },
     getWishes(ev) {
-      const list = db().wishes.filter((x) => x.status === 'pass').sort((a, b) => b.createdAt - a.createdAt);
-      const skip = +ev.skip || 0;
-      return { ok: true, total: list.length, list: list.slice(skip, skip + (+ev.limit || 20)) };
+      const all = db().wishes.filter((x) => x.status === 'pass' && (x.type !== 'voice' || x.auditPassed));
+      const page = pageOf(all, ev, 'createdAt', 50);
+      page.list = page.list.map((x) => ({ _id: x._id, name: x.name, type: x.type, content: x.content,
+        fileID: x.fileID, duration: x.duration, createdAt: x.createdAt, mine: x.openid === openid() }));
+      return Object.assign({ ok: true, total: all.length, voiceCount: all.filter((x) => x.type === 'voice').length }, page);
     },
     getRsvpCount() {
       const r = db().rsvp;
       const yes = r.filter((x) => x.attend === 'yes');
       return { ok: true, openid: openid(), yes: yes.length, no: r.length - yes.length, people: yes.reduce((s, x) => s + (x.count || 1), 0) };
     },
-    adminRsvp() {
+    adminRsvp(ev) {
       const d = db();
       if (d.admins.indexOf(openid()) < 0) return { ok: false, err: '没有权限' };
       const list = d.rsvp.slice().sort((a, b) => b.updatedAt - a.updatedAt);
       const yes = list.filter((x) => x.attend === 'yes');
       const people = yes.reduce((s, x) => s + (x.count || 1), 0);
-      return { ok: true, list, stat: { yes: yes.length, no: list.length - yes.length, people, tables: Math.ceil(people / 10) } };
+      return Object.assign({ ok: true, stat: ev.cursor ? null : { yes: yes.length, no: list.length - yes.length, people, tables: Math.ceil(people / 10) } }, pageOf(list, ev, 'updatedAt', 200));
     },
   };
 
@@ -183,6 +221,7 @@
     init() {},
     callFunction(o) {
       return asPromise(o, () => {
+        if (navigator.onLine === false) throw new Error('网络已断开');
         const fn = FUNCS[o.name];
         if (!fn) throw new Error('云函数不存在：' + o.name);
         const result = fn(o.data || {});
@@ -241,13 +280,14 @@
 
   function audioContext() {
     const a = new Audio();
-    const h = { play: [], pause: [], stop: [], error: [], ended: [] };
+    const h = { play: [], pause: [], stop: [], error: [], ended: [], timeUpdate: [] };
     const emit = (k, v) => h[k].forEach((f) => f(v || {}));
     let src = '';
     let ready = Promise.resolve();
     a.addEventListener('play', () => emit('play'));
     a.addEventListener('pause', () => { if (!a.ended) emit('pause'); });
     a.addEventListener('ended', () => emit('ended'));
+    a.addEventListener('timeupdate', () => emit('timeUpdate'));
     a.addEventListener('error', () => { if (a.getAttribute('src')) emit('error', { errMsg: '音频无法播放' }); });
     return {
       get src() { return src; },
@@ -256,6 +296,9 @@
         if (!src) { a.removeAttribute('src'); ready = Promise.resolve(); return; }
         ready = resolveUrl(src).then((u) => { a.src = u; }).catch((e) => emit('error', { errMsg: e.message }));
       },
+      get duration() { return a.duration || 0; },
+      get currentTime() { return a.currentTime || 0; },
+      get paused() { return a.paused; },
       get loop() { return a.loop; },
       set loop(v) { a.loop = !!v; },
       obeyMuteSwitch: false,
@@ -270,6 +313,7 @@
       onPause: (f) => h.pause.push(f),
       onStop: (f) => h.stop.push(f),
       onEnded: (f) => h.ended.push(f),
+      onTimeUpdate: (f) => h.timeUpdate.push(f),
       onError: (f) => h.error.push(f),
       destroy: () => a.pause(),
     };
@@ -392,6 +436,10 @@
     getStorageSync: store.get,
     setStorageSync: store.set,
     removeStorageSync: (k) => localStorage.removeItem(LS + 's:' + k),
+    onNetworkStatusChange(cb) {
+      window.addEventListener('online', () => cb({ isConnected: true, networkType: 'wifi' }));
+      window.addEventListener('offline', () => cb({ isConnected: false, networkType: 'none' }));
+    },
     getStorage: (o) => later(() => cb(o, true, { data: store.get(o.key) })),
     setStorage: (o) => later(() => { store.set(o.key, o.data); cb(o, true, {}); }),
     showToast,

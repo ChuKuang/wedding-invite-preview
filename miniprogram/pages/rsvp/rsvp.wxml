@@ -88,16 +88,17 @@
   </view>
 
   <!-- ============ 提交后：回执卡 ============ -->
-  <view wx:else class="done">
-    <view class="done-ico"><view class="seal lg">囍</view></view>
+  <view wx:else class="done {{celebrate ? 'fx' : ''}}">
+    <view class="done-ico"><view class="seal lg">{{syncPending ? '待' : '囍'}}</view></view>
     <view class="done-t serif">{{doneTitle}}</view>
     <view class="done-s serif">{{doneSub}}</view>
+    <view wx:if="{{syncPending}}" class="sync-note" bindtap="retrySync">{{syncing ? '发送中…' : '还没送达 · 点此重新发送'}}</view>
 
     <view class="done-card frame">
       <view class="dr"><text>称呼</text><text class="b serif">{{name}}</text></view>
       <view class="dr" wx:if="{{att==='yes'}}"><text>到场</text><text class="b serif">{{cntText}}</text></view>
       <view class="dr"><text>日期</text><text class="b serif">{{cfg.wedding.dateCN}}</text></view>
-      <view class="dr"><text>地点</text><text class="b serif">{{cfg.venue.name}} · {{cfg.venue.hall}}</text></view>
+      <view class="dr"><text>地点</text><text class="b serif">{{venueText}}</text></view>
     </view>
 
     <image class="sign-img" src="{{cfg.letter.signImage || '/images/sign.png'}}" mode="aspectFit" />

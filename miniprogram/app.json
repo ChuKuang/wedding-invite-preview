@@ -47,16 +47,6 @@
       }
     ]
   },
-  "requiredPrivateInfos": [
-    "getLocation",
-    "openLocation",
-    "chooseLocation"
-  ],
-  "permission": {
-    "scope.userLocation": {
-      "desc": "用于在地图上展示婚礼地点与导航"
-    }
-  },
   "style": "v2",
   "sitemapLocation": "sitemap.json",
   "lazyCodeLoading": "requiredComponents"

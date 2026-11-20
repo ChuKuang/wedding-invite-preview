@@ -21,7 +21,7 @@ const SCHEMA = [
       { key: 'wedding.timeNote', label: '时间下方小字', type: 'text' },
       { key: 'wedding.deadline', label: '回执截止日', type: 'text', ph: '2027-04-04' },
       { key: 'venue.name', label: '场地名', type: 'text' },
-      { key: 'venue.hall', label: '宴会厅', type: 'text' },
+      { key: 'venue.hall', label: '宴会厅（没有就留空）', type: 'text' },
       { key: 'venue.city', label: '城市', type: 'text' },
       { key: 'venue.address', label: '详细地址', type: 'area' },
       { key: 'venue.addressTip', label: '地址补充', type: 'text' },
@@ -187,6 +187,7 @@ Page({
     rsvpList: [],
     stat: null,
     rsvpLoading: false,
+    rsvpComplete: false,
   },
 
   onLoad() {
@@ -548,22 +549,42 @@ Page({
   },
 
   /* ---------- 回执 ---------- */
-  loadRsvp() {
+  async loadRsvp() {
     if (this.data.rsvpLoading) return;
-    this.setData({ rsvpLoading: true });
-    wx.cloud
-      .callFunction({ name: 'adminRsvp', data: { limit: 200 } })
-      .then((r) => {
+    this.setData({ rsvpLoading: true, rsvpComplete: false, rsvpList: [], stat: null });
+    try {
+      let cursor = null;
+      const records = new Map();
+      const positions = new Map();
+      while (true) {
+        const r = await wx.cloud.callFunction({ name: 'adminRsvp', data: { limit: 100, cursor } });
         const res = (r && r.result) || {};
         if (!res.ok) throw new Error(res.err || '读取失败');
-        const list = (res.list || []).map((x) => ({ ...x, timeText: timeText(x.updatedAt) }));
-        this.setData({ rsvpList: list, stat: res.stat, rsvpLoading: false });
-      })
-      .catch((err) => {
-        console.warn('回执读取失败', err);
-        this.setData({ rsvpLoading: false });
-        wx.showToast({ title: '读取失败：' + (err.message || ''), icon: 'none' });
-      });
+        const patch = {};
+        (res.list || []).forEach((x) => {
+          const row = { ...x, timeText: timeText(x.updatedAt) };
+          if (!positions.has(x._id)) positions.set(x._id, positions.size);
+          records.set(x._id, row);
+          // 只发送本页增量，避免大名单每次 setData 都重发完整数组。
+          patch[`rsvpList[${positions.get(x._id)}]`] = row;
+        });
+        if (res.stat) patch.stat = res.stat;
+        this.setData(patch);
+        if (!res.hasMore) break;
+        if (!res.nextCursor || JSON.stringify(res.nextCursor) === JSON.stringify(cursor)) throw new Error('分页读取异常，请刷新');
+        cursor = res.nextCursor;
+      }
+      // 导出汇总与实际拉到的完整名单一致，避免加载期间有人修改回帖造成差异。
+      const list = Array.from(records.values());
+      const yes = list.filter((x) => x.attend === 'yes');
+      const people = yes.reduce((sum, x) => sum + (x.count || 1), 0);
+      this.setData({ rsvpComplete: true, stat: { yes: yes.length, no: list.length - yes.length, people, tables: Math.ceil(people / 10) } });
+    } catch (err) {
+      console.warn('回执读取失败', err);
+      wx.showToast({ title: '名单未读完整，请刷新重试', icon: 'none' });
+    } finally {
+      this.setData({ rsvpLoading: false });
+    }
   },
 
   rsvpRows() {
@@ -580,6 +601,7 @@ Page({
 
   // 生成 CSV 文件，直接发到聊天（发给「文件传输助手」，电脑上用 Excel 打开）
   exportFile() {
+    if (!this.data.rsvpComplete || this.data.rsvpLoading) { wx.showToast({ title: '请先加载完整名单', icon: 'none' }); return; }
     const list = this.data.rsvpList;
     if (!list.length) { wx.showToast({ title: '还没有回执', icon: 'none' }); return; }
     const st = this.data.stat || {};
@@ -621,6 +643,7 @@ Page({
 
   // 复制为制表符分隔的文本，可直接粘进 Excel / WPS / 腾讯文档
   exportRsvp() {
+    if (!this.data.rsvpComplete || this.data.rsvpLoading) { wx.showToast({ title: '请先加载完整名单', icon: 'none' }); return; }
     const list = this.data.rsvpList;
     if (!list.length) { wx.showToast({ title: '还没有回执', icon: 'none' }); return; }
     const clean = (v) => String(v == null ? '' : v).replace(/[\t\r\n]+/g, ' ');

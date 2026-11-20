@@ -1,34 +1,36 @@
-<view class="cover">
+<view class="cover {{fx ? 'fx' : 'still'}} {{leaving ? 'leaving' : ''}}">
   <view class="pic cover-bg">
     <image src="{{cfg.cover.photo}}" mode="aspectFill" />
     <view class="veil"></view>
     <view class="shade"></view>
   </view>
 
-  <!-- 婚帖金线框 -->
   <view class="border"></view>
 
   <view class="in">
-    <view class="kicker serif">{{cfg.cover.kicker}}</view>
+    <view class="kicker serif s1">{{cfg.cover.kicker}}</view>
 
     <!-- 竖排姓名，中间一枚「囍」 -->
     <view class="names serif">
-      <view class="vname">{{cfg.couple.groom}}</view>
-      <view class="seal lg">囍</view>
-      <view class="vname">{{cfg.couple.bride}}</view>
+      <view class="vname s2">{{cfg.couple.groom}}</view>
+      <view class="seal lg s3">囍</view>
+      <view class="vname s2b">{{cfg.couple.bride}}</view>
     </view>
 
-    <view class="line"><view class="ln"></view><view class="dia"></view><view class="ln"></view></view>
-    <view class="date serif">{{cfg.wedding.dateCN}}</view>
-    <view class="lunar">{{cfg.wedding.lunar}} · {{cfg.wedding.weekday}}</view>
-    <view class="place">{{cfg.venue.city}} · {{cfg.venue.name}}</view>
-    <view class="words serif">{{cfg.cover.words}}</view>
+    <view class="line s4"><view class="ln"></view><view class="dia"></view><view class="ln"></view></view>
+    <view class="date serif s4">{{cfg.wedding.dateCN}}</view>
+    <view class="lunar s5">{{cfg.wedding.lunar}} · {{cfg.wedding.weekday}}</view>
+    <view class="place s5" wx:if="{{placeText}}">{{placeText}}</view>
+    <view class="words serif s6">{{cfg.cover.words}}</view>
   </view>
 
-  <view class="hint" bindtap="open">
+  <view class="hint s6" bindtap="open">
     <view class="pill serif">轻 触 启 封</view>
   </view>
 
   <!-- 管理入口：连点 5 次进设置 -->
   <view class="v" bindtap="tapVersion">v1.0</view>
+
+  <!-- 启封时盖上来的一层宣纸色，和请柬页底色一致，切页时不闪 -->
+  <view class="curtain"></view>
 </view>

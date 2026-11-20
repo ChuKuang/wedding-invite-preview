@@ -182,7 +182,7 @@ module.exports = {
   /* ---------- 开关 ---------- */
   features: {
     voiceWish: true,      // 语音祝福（需云开发，且需在小程序后台开通「音频」类目）
-    // 关闭后，祝福先入 pending 集合，需你到云开发控制台审核后再手动迁入 wishes
+    // 开启后，祝福留在 wishes 集合的 review 状态；人工确认后将 status 改为 pass
     wishNeedReview: false,
 
     // 收喜糖地址栏：

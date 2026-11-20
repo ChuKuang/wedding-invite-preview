@@ -99,3 +99,20 @@
   font-family: var(--serif); font-size: 26rpx; letter-spacing: .2em;
   color: var(--sun-dp); padding: 14rpx 36rpx; border: 1rpx solid var(--sun-dp); border-radius: 4rpx;
 }
+
+/* 首次进入：一层宣纸色从不透明淡到透明 */
+.enter-curtain {
+  position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 40;
+  background: var(--warm); pointer-events: none;
+  animation: inv-curtain .55s .05s ease-out both;
+}
+@keyframes inv-curtain { from { opacity: 1; } to { opacity: 0; } }
+
+/* 信纸按时间依次淡入，不依赖滚动：落款不会因为没滑动而一直空着 */
+.lt-fx .lt { animation: lt-in .8s ease both; }
+.lt-fx .lt-seal { animation: lt-seal .8s ease both; }
+@keyframes lt-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lt-seal {
+  from { opacity: 0; transform: scale(1.12); }
+  to   { opacity: 1; transform: none; }
+}

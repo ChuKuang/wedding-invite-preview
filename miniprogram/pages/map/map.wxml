@@ -7,7 +7,6 @@
       scale="{{venue.scale}}"
       markers="{{markers}}"
       polyline="{{polyline}}"
-      show-location
       enable-poi
       bindmarkertap="onMarker"
     ></map>

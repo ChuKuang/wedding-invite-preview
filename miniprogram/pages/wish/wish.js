@@ -31,11 +31,17 @@ Page({
     total: 0,
     voiceCount: 0,
     loading: true,
+    hasMore: true,
+    loadError: false,
     canVoice: false,
     recording: false,
     recSec: 0,
     bars: bars(3, 16),
     defAvatar: '/images/photos/trip3.jpg',
+    playing: -1,        // 正在播放的那条的下标
+    loadingVoice: false,
+    litBars: 0,         // 已播放到第几根波形
+    leftText: '',       // 剩余时长
     T: {},
   },
 
@@ -48,12 +54,14 @@ Page({
       });
       music.sync(this);
     });
+    if (this._rawList && !this._loadingAll && app.globalData.wishes !== this._rawList) this.load(null, true);
   },
 
   toggleMusic() { music.toggle(); },
 
   onLoad() {
     this.bindRecorder();
+    this.bindAudio();
     this.load();
   },
 
@@ -61,49 +69,78 @@ Page({
     if (audio) audio.stop();
   },
 
+  onHide() {
+    // 切走时停掉，免得看不见了还在放
+    if (this.data.playing > -1 && audio) audio.stop();
+  },
+
   onPullDownRefresh() {
-    app.globalData.wishes = [];
-    this.load(() => wx.stopPullDownRefresh());
+    this.load(() => wx.stopPullDownRefresh(), true);
   },
 
   onReachBottom() {
     this.load();
   },
 
+  loadMore() { this.load(); },
+
   /* ---------- 拉取 ---------- */
-  load(done) {
-    if (this._loadingAll) return done && done();
-    this.setData({ loading: true });
-    const cache = app.globalData.wishes;
-    if (cache && cache.length) {
-      this.render(cache);
-      this.setData({ loading: false });
-      return done && done();
+  load(done, reset) {
+    if (this._loadingAll) {
+      if (reset) return this._loadingAll.then(() => this.load(done, true));
+      return this._loadingAll.then(() => { if (done) done(); });
     }
-    wx.cloud
+    if (reset) {
+      if (audio && this.data.playing > -1) audio.stop();
+      this._rawList = [];
+      this._cursor = null;
+      this.setData({ hasMore: true });
+    } else if (!this._rawList) {
+      const cached = app.globalData.wishesPage;
+      this._rawList = app.globalData.wishes || [];
+      if (cached) {
+        this._cursor = cached.nextCursor;
+        this.setData({ total: cached.total, voiceCount: cached.voiceCount, hasMore: cached.hasMore, loading: false });
+        this.render(this._rawList);
+        if (done) done();
+        return Promise.resolve();
+      }
+      // 旧缓存没有分页信息，从第一页重新读取。
+      this._rawList = [];
+    }
+    if (!this.data.hasMore) { if (done) done(); return Promise.resolve(); }
+    this.setData({ loading: true, loadError: false });
+    this._loadingAll = wx.cloud
       .callFunction({
         name: 'getWishes',
-        data: { skip: 0, limit: 50 },
+        data: { cursor: this._cursor || null, limit: 50 },
       })
       .then((res) => {
         const r = (res && res.result) || {};
-        const list = r.list || [];
+        if (!r.ok) throw new Error(r.err || '读取失败');
+        if (r.hasMore && (!r.nextCursor || JSON.stringify(r.nextCursor) === JSON.stringify(this._cursor))) throw new Error('分页读取异常');
+        const ids = new Set(this._rawList.map((x) => x._id));
+        const list = this._rawList.concat((r.list || []).filter((x) => !ids.has(x._id)));
+        this._rawList = list;
+        this._cursor = r.nextCursor;
         app.globalData.wishes = list;
-        this.setData({ total: r.total || list.length });
+        app.globalData.wishesPage = { total: r.total, voiceCount: r.voiceCount || 0, nextCursor: r.nextCursor, hasMore: !!r.hasMore };
+        this.setData({ total: r.total === undefined ? list.length : r.total, voiceCount: r.voiceCount || 0, hasMore: !!r.hasMore });
         this.render(list);
       })
       .catch((err) => {
         console.warn('拉取祝福失败（可能未部署云函数）', err);
-        this.setData({ list: [], total: 0 });
+        this.setData({ loadError: true });
       })
       .finally(() => {
         this.setData({ loading: false });
+        this._loadingAll = null;
         done && done();
       });
+    return this._loadingAll;
   },
 
   render(list) {
-    const v = list.filter((x) => x.type === 'voice');
     const rendered = list.map((x, i) => ({
       ...x,
       timeText: timeText(x.createdAt),
@@ -112,7 +149,7 @@ Page({
         ? `${Math.floor((x.duration || 0) / 60)}:${String(Math.round((x.duration || 0) % 60)).padStart(2, '0')}`
         : '',
     }));
-    this.setData({ list: rendered, voiceCount: v.length, total: Math.max(this.data.total, list.length) });
+    this.setData({ list: rendered });
   },
 
   /* ---------- 录音 ---------- */
@@ -154,7 +191,7 @@ Page({
         // 录音时先停背景音乐，免得录进去
         this._musicWas = app.musicOn();
         app.pauseMusic();
-        recorder.start({ format: 'aac', duration: 60000, sampleRate: 44100, numberOfChannels: 1 });
+        recorder.start({ format: 'aac', duration: 60000, sampleRate: 44100, numberOfChannels: 1, encodeBitRate: 96000 });
       },
       fail: () => {
         wx.showModal({
@@ -188,11 +225,14 @@ Page({
           data: { name, type: 'voice', fileID: up.fileID, duration },
         })
       )
-      .then(() => {
+      .then((r) => {
+        const res = (r && r.result) || {};
+        if (!res.ok) throw new Error(res.err || '发送失败');
         wx.hideLoading();
-        wx.showToast({ title: this.data.T.recOk || '收到了', icon: 'none' });
+        wx.showToast({ title: res.status === 'pass' ? (this.data.T.recOk || '收到了') : '已收到，审核后显示', icon: 'none' });
         app.globalData.wishes = [];
-        this.load();
+        app.globalData.wishesPage = null;
+        this.load(null, true);
       })
       .catch((err) => {
         wx.hideLoading();
@@ -201,19 +241,66 @@ Page({
       });
   },
 
+  /* ---------- 播放语音 ---------- */
+  bindAudio() {
+    if (!audio || this._audioBound) return;
+    this._audioBound = true;
+    audio.onPlay(() => this.setData({ loadingVoice: false }));
+    audio.onTimeUpdate(() => {
+      const i = this.data.playing;
+      const item = this.data.list[i];
+      if (!item) return;
+      // 优先用音频真实时长，拿不到就用上传时记下的秒数
+      const total = audio.duration > 0 && isFinite(audio.duration) ? audio.duration : (item.duration || 1);
+      const cur = Math.min(audio.currentTime || 0, total);
+      const left = Math.max(0, Math.ceil(total - cur));
+      this.setData({
+        litBars: Math.round((cur / total) * item.bars.length),
+        leftText: `-${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`,
+      });
+    });
+    const end = () => this.endVoice();
+    audio.onEnded(end);
+    audio.onStop(end);
+    audio.onError(() => { this.endVoice(); wx.showToast({ title: '播放失败', icon: 'none' }); });
+  },
+
+  endVoice() {
+    if (this.data.playing === -1) return;
+    this.setData({ playing: -1, loadingVoice: false, litBars: 0, leftText: '' });
+    // 听完把背景音乐接回来
+    if (this._musicWasPlay) app.playMusic();
+    this._musicWasPlay = false;
+  },
+
   playVoice(e) {
-    const item = this.data.list[+e.currentTarget.dataset.i];
-    if (!item || !item.fileID || !audio) return;
+    const i = +e.currentTarget.dataset.i;
+    const item = this.data.list[i];
+    if (!item || !audio) return;
+    // 再点正在放的那条 = 停止
+    if (this.data.playing === i) { audio.stop(); return; }
+    if (!item.fileID) { wx.showToast({ title: '这条语音没有音频', icon: 'none' }); return; }
+    // 正在放别的：先停掉，不触发恢复背景音乐
+    if (this.data.playing > -1) { this.setData({ playing: -1 }); audio.stop(); }
+    else { this._musicWasPlay = app.musicOn(); }
+    app.pauseMusic();
+    this.setData({ playing: i, loadingVoice: true, litBars: 0, leftText: '' });
+    const token = (this._playToken || 0) + 1;
+    this._playToken = token;
     wx.cloud
       .getTempFileURL({ fileList: [item.fileID] })
       .then((r) => {
+        if (this._playToken !== token) return;   // 期间已经点了别的
         const url = r.fileList[0] && r.fileList[0].tempFileURL;
         if (!url) throw new Error('no url');
-        app.pauseMusic();
         audio.src = url;
         audio.play();
       })
-      .catch(() => wx.showToast({ title: '播放失败', icon: 'none' }));
+      .catch(() => {
+        if (this._playToken !== token) return;
+        this.endVoice();
+        wx.showToast({ title: '播放失败', icon: 'none' });
+      });
   },
 
   goRsvp() {

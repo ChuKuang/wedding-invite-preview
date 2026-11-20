@@ -36,14 +36,21 @@
         </view>
       </view>
       <view class="c" wx:if="{{item.content}}">{{item.content}}</view>
-      <view class="v" wx:if="{{item.type==='voice'}}" data-i="{{index}}" bindtap="playVoice">
-        <view class="play"><image src="/images/ico-play.png" /></view>
-        <view class="w"><i wx:for="{{item.bars}}" wx:for-item="b" wx:key="*this" style="height:{{b}}rpx"></i></view>
-        <view class="dur">{{item.durationText || '0:10'}}</view>
+      <view class="v {{playing===index ? 'on' : ''}} {{playing===index && loadingVoice ? 'wait' : ''}}" wx:if="{{item.type==='voice'}}" data-i="{{index}}" bindtap="playVoice">
+        <view class="play">
+          <view wx:if="{{playing===index && !loadingVoice}}" class="pause"><i></i><i></i></view>
+          <view wx:elif="{{playing===index}}" class="spin"></view>
+          <image wx:else src="/images/ico-play.png" />
+        </view>
+        <view class="w"><i wx:for="{{item.bars}}" wx:for-item="b" wx:for-index="bi" wx:key="*this" class="{{playing===index && bi < litBars ? 'lit' : ''}}" style="height:{{b}}rpx"></i></view>
+        <view class="dur">{{playing===index && !loadingVoice ? leftText : (item.durationText || '0:10')}}</view>
       </view>
     </view>
 
-    <view class="empty" wx:if="{{!list.length && !loading}}">还没有人留言 · 来当第一个</view>
+    <view class="empty" wx:if="{{!list.length && !loading && !loadError}}">还没有人留言 · 来当第一个</view>
+    <view class="more" wx:if="{{loading}}">贺词加载中…</view>
+    <view class="more" wx:elif="{{loadError}}" bindtap="loadMore">没读成功 · 点此重试</view>
+    <view class="more" wx:elif="{{hasMore}}" bindtap="loadMore">再看一些贺词</view>
   </view>
 
   <view class="pad"></view>

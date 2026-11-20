@@ -1,4 +1,5 @@
 const localWedding = require('./config/wedding.js');
+const rsvpSync = require('./utils/rsvp-sync.js');
 
 App({
   globalData: {
@@ -9,6 +10,7 @@ App({
     hasAdmin: false,         // 是否已有管理员（false = 还没人认领）
     remote: false,           // 当前配置是否来自云端
     wishes: [],
+    wishesPage: null,
   },
 
   _ready: false,
@@ -21,6 +23,13 @@ App({
       return;
     }
     wx.cloud.init({ env: wx.cloud.DYNAMIC_CURRENT_ENV, traceUser: true });
+    rsvpSync.subscribe((s) => {
+      if (s.wishChanged) { this.globalData.wishes = []; this.globalData.wishesPage = null; }
+    });
+    if (wx.onNetworkStatusChange) wx.onNetworkStatusChange((s) => {
+      if (s.isConnected) rsvpSync.sync();
+    });
+    rsvpSync.resume();
     this.loadConfig().catch(() => this.flush());
   },
 
@@ -96,10 +105,12 @@ App({
   _bgmWas: false,
 
   onHide() {
+    rsvpSync.pause();
     this._bgmWas = this._bgmOn;
   },
 
   onShow() {
+    rsvpSync.resume();
     if (this._bgmWas) this.playMusic();
   },
 
