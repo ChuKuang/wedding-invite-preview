@@ -1,10 +1,11 @@
 const app = getApp();
 const { prepareAlbumPhoto } = require('../../utils/album-photo.js');
+const { prepareAlbumVideo } = require('../../utils/album-video.js');
 
 /* ============================================================
    可编辑字段定义
    type: text 单行 / area 多行 / lines 数组(一行一条) / rows 表格
-         number 数字 / photo 图片 / audio 音乐
+         number 数字 / photo 图片 / audio 音乐 / video 短片
    ============================================================ */
 const SCHEMA = [
   {
@@ -65,11 +66,17 @@ const SCHEMA = [
       { key: 'venue.photo', label: '场地卡片', type: 'photo' },
       { key: 'rsvpHero.photo', label: '回执页头图', type: 'photo' },
       { key: 'wishHero.photo', label: '祝福页头图', type: 'photo' },
-      { key: 'albumHero.head', label: '相册页大标题', type: 'text', ph: '我 们 的 时 光' },
-      { key: 'albumHero.headEn', label: '相册页英文小字（可留空）', type: 'text', ph: 'Our Moments' },
-      { key: 'albumHero.photo', label: '相册页头图', type: 'photo' },
-      { key: 'albumHero.title', label: '相册头图标题', type: 'text' },
-      { key: 'albumHero.sub', label: '相册头图副标题', type: 'text' },
+    ],
+  },
+  {
+    tab: 'trip', name: '相册标题与短片', items: [
+      { key: 'albumHero.head', label: '相册标题', type: 'text', ph: '我 们 的 时 光' },
+      { key: 'albumHero.headEn', label: '英文小字（可留空）', type: 'text', ph: 'Our Moments' },
+      { key: 'albumHero.intro', label: '标题下的一句话（可留空）', type: 'area', ph: '从相识到相守，想把这些时刻分享给你。' },
+      { key: 'albumHero.video.src', label: '可选短片', type: 'video', hint: '推荐 15–30 秒的 H.264 MP4；最多 60 秒，压缩后 30MB 以内、长边不超过 1920px。留空隐藏短片，宾客点击后才加载。浏览器预览不能转码，请直接选择符合要求的文件。' },
+      { key: 'albumHero.video.poster', label: '短片封面', type: 'photo', hint: '上传短片时自动生成封面，也可以自己选图。' },
+      { key: 'albumHero.video.title', label: '短片标题', type: 'text', ph: '我们的短片' },
+      { key: 'albumHero.video.note', label: '短片下的一句话（可留空）', type: 'text' },
     ],
   },
   {
@@ -256,6 +263,10 @@ Page({
 
   setField(gi, ii, value) {
     const it = this.data.groups[gi].items[ii];
+    if (it.key === 'albumHero.video.src' && value !== get(this.draft, it.key)) {
+      set(this.draft, 'albumHero.video.width', 0);
+      set(this.draft, 'albumHero.video.height', 0);
+    }
     set(this.draft, it.key, parseValue(it, value));
     this.setData({ [`groups[${gi}].items[${ii}].value`]: value });
   },
@@ -293,6 +304,15 @@ Page({
     this.setData({ trips: clone(this.draft.trips) });
   },
 
+  moveTrip(e) {
+    const i = Number(e.currentTarget.dataset.i), to = i + Number(e.currentTarget.dataset.step);
+    const trips = this.draft.trips || [];
+    if (!Number.isInteger(i) || !Number.isInteger(to) || i < 0 || i >= trips.length || to < 0 || to >= trips.length) return;
+    const [trip] = trips.splice(i, 1);
+    trips.splice(to, 0, trip);
+    this.setData({ trips: clone(trips) });
+  },
+
   /* ---------- 照片上传 ---------- */
   upload(e) {
     const gi = +e.currentTarget.dataset.gi;
@@ -313,7 +333,9 @@ Page({
           return;
         }
         // 签名：先裁掉四周的空白，免得字在框里被缩得很小
-        const prep = it && it.trim ? this.trimImage(file.tempFilePath) : Promise.resolve(file.tempFilePath);
+        const prep = it && it.key === 'albumHero.video.poster'
+          ? prepareAlbumPhoto(file.tempFilePath).then((p) => p.thumb.filePath)
+          : it && it.trim ? this.trimImage(file.tempFilePath) : Promise.resolve(file.tempFilePath);
         prep
           .then((path) => {
             const ext = (path.split('.').pop() || 'jpg').toLowerCase();
@@ -358,6 +380,47 @@ Page({
     } finally { wx.hideLoading(); }
     wx.showToast({ title: notice, icon: 'none' });
   },
+
+  uploadVideo() {
+    if (this._uploadingVideo) return;
+    wx.chooseMedia({ count: 1, mediaType: ['video'], maxDuration: 60, sizeType: ['compressed'],
+      success: (r) => {
+        const file = r.tempFiles && r.tempFiles[0];
+        if (!file) return;
+        wx.showLoading({ title: '处理短片中', mask: true });
+        this.uploadAlbumVideo(file);
+      },
+      fail: (err) => { if (!/cancel/.test(err.errMsg || '')) wx.showToast({ title: (err.errMsg || '').split(':fail ')[1] || '选择短片失败', icon: 'none' }); },
+    });
+  },
+
+  async uploadAlbumVideo(file) {
+    this._uploadingVideo = true;
+    const uploaded = [];
+    let notice = '短片已上传，记得保存';
+    try {
+      const prepared = await prepareAlbumVideo(file.tempFilePath);
+      const poster = file.thumbTempFilePath ? (await prepareAlbumPhoto(file.thumbTempFilePath)).thumb : null;
+      const prefix = `uploads/album/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const up = await wx.cloud.uploadFile({ cloudPath: `${prefix}-film.${prepared.extension}`, filePath: prepared.filePath });
+      uploaded.push(up.fileID);
+      if (poster) {
+        const cover = await wx.cloud.uploadFile({ cloudPath: `${prefix}-poster.${poster.extension}`, filePath: poster.filePath });
+        uploaded.push(cover.fileID);
+      }
+      set(this.draft, 'albumHero.video.src', uploaded[0]);
+      set(this.draft, 'albumHero.video.width', prepared.width);
+      set(this.draft, 'albumHero.video.height', prepared.height);
+      if (poster) set(this.draft, 'albumHero.video.poster', uploaded[1]);
+      this.buildGroups();
+    } catch (err) {
+      if (uploaded.length && wx.cloud.deleteFile) await wx.cloud.deleteFile({ fileList: uploaded }).catch(() => {});
+      notice = err.message || '短片上传失败，请重试';
+    } finally { this._uploadingVideo = false; wx.hideLoading(); }
+    wx.showToast({ title: notice, icon: 'none' });
+  },
+
+  clearVideo(e) { this.setField(+e.currentTarget.dataset.gi, +e.currentTarget.dataset.ii, ''); },
 
   // 裁掉图片四周的透明/近白边，返回新图路径；任何一步失败就用原图
   trimImage(src) {

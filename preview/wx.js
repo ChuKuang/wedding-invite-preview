@@ -380,7 +380,9 @@
     writeFile(o) { memfs[o.filePath] = o.data; later(() => cb(o, true, {})); },
     readFileSync(path) { if (!(path in memfs)) throw new Error('no such file ' + path); return memfs[path]; },
     stat(o) {
-      if (/^data:/.test(o.path)) {
+      if (/^blob:/.test(o.path)) {
+        fetch(o.path).then((r) => r.blob()).then((b) => cb(o, true, { stats: { size: b.size } }), () => cb(o, false, { errMsg: 'stat:fail file not found' }));
+      } else if (/^data:/.test(o.path)) {
         const payload = o.path.split(',')[1] || '';
         const size = Math.floor(payload.length * 3 / 4) - (payload.endsWith('==') ? 2 : payload.endsWith('=') ? 1 : 0);
         cb(o, true, { stats: { size } });
@@ -405,7 +407,8 @@
   function chooseMedia(o) {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/*';
+    const isVideo = (o.mediaType || []).includes('video');
+    input.accept = isVideo ? 'video/mp4,video/quicktime,.mp4,.mov' : 'image/*';
     input.style.display = 'none';
     document.body.appendChild(input);
     input.oncancel = () => { input.remove(); cb(o, false, { errMsg: 'chooseMedia:fail cancel' }); };
@@ -413,6 +416,37 @@
       const file = input.files[0];
       input.remove();
       if (!file) return cb(o, false, { errMsg: 'chooseMedia:fail cancel' });
+      if (isVideo) {
+        if (file.size > 30 * 1024 * 1024) {
+          cb(o, false, { errMsg: 'chooseMedia:fail 请选 30MB 以内的短片' });
+          return;
+        }
+        const src = URL.createObjectURL(file);
+        const video = document.createElement('video');
+        video.muted = true;
+        video.preload = 'auto';
+        const finish = () => {
+          video.onloadeddata = video.onerror = null;
+          video.removeAttribute('src'); video.load();
+        };
+        video.onloadeddata = () => {
+          let poster = '';
+          try {
+            const cv = document.createElement('canvas');
+            const scale = Math.min(1, 1200 / Math.max(video.videoWidth, video.videoHeight));
+            cv.width = Math.round(video.videoWidth * scale); cv.height = Math.round(video.videoHeight * scale);
+            cv.getContext('2d').drawImage(video, 0, 0, cv.width, cv.height);
+            poster = cv.toDataURL('image/jpeg', .8);
+          } catch (e) { /* 封面也可由管理员手动选择 */ }
+          const picked = { tempFilePath: src, thumbTempFilePath: poster, size: file.size,
+            duration: video.duration, width: video.videoWidth, height: video.videoHeight, fileType: 'video' };
+          finish();
+          cb(o, true, { type: 'video', tempFiles: [picked] });
+        };
+        video.onerror = () => { finish(); URL.revokeObjectURL(src); cb(o, false, { errMsg: 'chooseMedia:fail 视频无法读取，请选 H.264 MP4' }); };
+        video.src = src;
+        return;
+      }
       const img = new Image();
       img.onload = () => {
         const edge = (o.sizeType || []).includes('original') ? Infinity : 2000;
@@ -431,6 +465,40 @@
       img.src = URL.createObjectURL(file);
     };
     input.click();
+  }
+
+  function getVideoInfo(o) {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    const cleanup = () => {
+      video.onloadedmetadata = video.onerror = null;
+      video.removeAttribute('src'); video.load();
+    };
+    video.onloadedmetadata = () => {
+      const result = { width: video.videoWidth, height: video.videoHeight, duration: video.duration };
+      cleanup(); cb(o, true, result);
+    };
+    video.onerror = () => { cleanup(); cb(o, false, { errMsg: 'getVideoInfo:fail 短片无法读取' }); };
+    video.src = window.WXML.mapSrc(o.src);
+  }
+
+  function createVideoContext(id, page) {
+    const root = page && page.__el ? page.__el : document;
+    const el = root.querySelector('#' + id);
+    return {
+      play() {
+        if (!el) return;
+        el.play().catch(() => showToast({ title: '请点播放器内的播放按钮', icon: 'none' }));
+      },
+      pause() { if (el) el.pause(); },
+      stop() {
+        if (!el) return;
+        el.pause();
+        if (el.readyState) el.currentTime = 0;
+        // 取消尚未完成的网络读取；页面随后移除播放器。
+        el.__src = ''; el.removeAttribute('src'); el.load();
+      },
+    };
   }
 
   /* ---------------- 导出 wx ---------------- */
@@ -466,6 +534,10 @@
     vibrateLong: (o) => cb(o, true, {}),
     previewImage,
     chooseMedia,
+    getVideoInfo,
+    // 浏览器没有微信的视频转码器，后续尺寸和体积校验会拒绝不合规格的文件。
+    compressVideo: (o) => later(() => cb(o, true, { tempFilePath: o.src })),
+    createVideoContext,
     chooseImage: (o) => chooseMedia({ success: (r) => cb(o, true, { tempFilePaths: r.tempFiles.map((f) => f.tempFilePath), tempFiles: r.tempFiles }), fail: o && o.fail }),
     setClipboardData(o) {
       const done = () => { cb(o, true, {}); showToast({ title: '内容已复制', icon: 'none' }); };

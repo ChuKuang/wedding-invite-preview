@@ -21,7 +21,7 @@
   </scroll-view>
 
   <!-- 表单 -->
-  <block wx:if="{{tab!=='trip' && tab!=='rsvp'}}">
+  <block wx:if="{{tab!=='rsvp'}}">
     <view class="grp" wx:for="{{groups}}" wx:for-item="g" wx:for-index="gi" wx:key="name">
       <view class="g-t">{{g.name}}</view>
       <view class="f" wx:for="{{g.items}}" wx:for-item="it" wx:for-index="ii" wx:key="key">
@@ -42,6 +42,15 @@
           <input class="f-i" value="{{it.value}}" data-gi="{{gi}}" data-ii="{{ii}}"
                  bindinput="onField" placeholder="云存储 fileID 或 /images/…" placeholder-class="f-ph" />
           <view class="up" data-gi="{{gi}}" data-ii="{{ii}}" bindtap="upload">选图</view>
+        </view>
+
+        <view wx:elif="{{it.type==='video'}}">
+          <input class="f-i" value="{{it.value}}" data-gi="{{gi}}" data-ii="{{ii}}"
+                 bindinput="onField" placeholder="云存储 fileID 或 HTTPS 视频链接；留空隐藏" placeholder-class="f-ph" />
+          <view class="au-acts">
+            <view class="up" data-gi="{{gi}}" data-ii="{{ii}}" bindtap="uploadVideo">选视频</view>
+            <view class="up off" data-gi="{{gi}}" data-ii="{{ii}}" bindtap="clearVideo">移除短片</view>
+          </view>
         </view>
 
         <view wx:elif="{{it.type==='audio'}}">
@@ -66,10 +75,15 @@
   <block wx:if="{{tab==='trip'}}">
     <view class="grp">
       <view class="g-t">相册照片（{{trips.length}} 张）</view>
+      <view class="f-h">第一张作为主照片。横图宽幅展示，连续竖图并排，单张竖图居中；照片保持完整比例。</view>
       <view class="trip" wx:for="{{trips}}" wx:key="index">
         <view class="th">
           <text class="tn">第 {{index+1}} 张</text>
-          <text class="del" data-i="{{index}}" bindtap="delTrip">删除</text>
+          <view class="trip-acts">
+            <text wx:if="{{index > 0}}" class="move" data-i="{{index}}" data-step="-1" bindtap="moveTrip">上移</text>
+            <text wx:if="{{index < trips.length - 1}}" class="move" data-i="{{index}}" data-step="1" bindtap="moveTrip">下移</text>
+            <text class="del" data-i="{{index}}" bindtap="delTrip">删除</text>
+          </view>
         </view>
         <input class="f-i" value="{{item.loc}}" data-i="{{index}}" data-k="loc"
                bindinput="onTripField" placeholder="标题（如 2021.07 · 青海湖、第一次一起做饭）" placeholder-class="f-ph" />

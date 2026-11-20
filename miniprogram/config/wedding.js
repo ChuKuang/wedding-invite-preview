@@ -91,9 +91,9 @@ module.exports = {
   albumHero: {
     head: '我 们 的 时 光',      // 页面顶部大标题
     headEn: 'Our Moments',       // 大标题下的英文小字，留空则不显示
-    photo: '/images/photos/trip4.jpg',
-    title: '一些日常，一些远方',
-    sub: '攒下的样子，挑几张给你看',
+    intro: '从相识到相守，想把这些时刻分享给你。',
+    // 留空不显示短片；在后台「相册」上传视频、选封面后保存即可。
+    video: { src: '', poster: '', title: '我们的短片', note: '', width: 0, height: 0 },
   },
 
   /* ---------- 祝福墙 ---------- */

@@ -121,3 +121,5 @@
   box-shadow: 0 8rpx 20rpx rgba(163,51,40,.2);
 }
 .b-save.off { background: var(--ink-3); box-shadow: none; }
+.trip-acts { display: flex; align-items: center; gap: 24rpx; }
+.move { padding: 8rpx 0; font-size: 23rpx; color: var(--ink-2); }

@@ -3,32 +3,56 @@
   <view class="head">
     <view class="sec-title">{{hero.head || '我 们 的 时 光'}}</view>
     <view class="sec-en" wx:if="{{hero.headEn !== ''}}">{{hero.headEn || 'Our Moments'}}</view>
+    <view class="intro serif" wx:if="{{hero.intro !== ''}}">{{hero.intro || '从相识到相守，想把这些时刻分享给你。'}}</view>
   </view>
 
-  <!-- 头图 -->
-  <view class="pic hero">
-    <image src="{{hero.photo}}" mode="aspectFill" />
-    <view class="veil"></view><view class="shade"></view>
-    <view class="txt">
-      <view class="t1 serif">{{hero.title}}</view>
-      <view class="t2">{{hero.sub}}</view>
-    </view>
-  </view>
-
-  <!-- 保留照片比例，竖图和横图均完整展示 -->
-  <view class="mm">
-    <view class="mcard" wx:for="{{trips}}" wx:key="_key">
-      <view class="pic" style="padding-top: {{item._ratio}}%;" data-i="{{index}}" bindtap="preview">
-        <image src="{{item._photo}}" mode="aspectFit" lazy-load data-i="{{index}}" bindload="photoLoaded" binderror="photoFailed" />
-        <view class="photo-state" wx:if="{{!item._loaded && !item._failed}}">照片加载中</view>
-        <view class="photo-state retry" wx:if="{{item._failed}}" data-i="{{index}}" catchtap="retryPhoto">加载失败 · 点此重试</view>
+  <view class="moments">
+    <block wx:for="{{trips}}" wx:key="_key">
+      <view class="chapter" wx:if="{{index === 1}}">
+        <view class="fine-line"></view><text class="serif">沿途的我们</text><view class="fine-line"></view>
       </view>
-      <view class="b" wx:if="{{item.loc || item.word}}">
-        <view class="loc serif" wx:if="{{item.loc}}">{{item.loc}}</view>
-        <view class="word serif" wx:if="{{item.word}}">{{item.word}}</view>
+      <view class="mcard {{item._layout}}">
+        <view class="photo-frame">
+          <view class="pic" style="padding-top: {{item._ratio}}%;" data-i="{{index}}" bindtap="preview">
+            <image src="{{item._photo}}" mode="aspectFit" lazy-load data-i="{{index}}" bindload="photoLoaded" binderror="photoFailed" />
+            <view class="photo-state" wx:if="{{!item._loaded && !item._failed}}">照片加载中</view>
+            <view class="photo-state retry" wx:if="{{item._failed}}" data-i="{{index}}" catchtap="retryPhoto">加载失败 · 点此重试</view>
+          </view>
+        </view>
+        <view class="caption">
+          <view class="caption-head">
+            <text class="photo-number">{{item._number}}</text>
+            <text class="loc serif" wx:if="{{item.loc}}">{{item.loc}}</text>
+            <text class="photo-hint" wx:if="{{index === 0 && !item.loc}}">轻触照片 · 看大图</text>
+          </view>
+          <view class="word serif" wx:if="{{item.word}}">{{item.word}}</view>
+        </view>
       </view>
-    </view>
+    </block>
   </view>
 
+  <view class="film" wx:if="{{video.src}}">
+    <view class="chapter"><view class="fine-line"></view><text class="serif">{{video.title || '我们的短片'}}</text><view class="fine-line"></view></view>
+    <view class="film-frame" style="padding-top: {{video._ratio}}%;">
+      <video wx:if="{{videoReady}}" id="album-film" src="{{videoSrc}}" poster="{{video._poster}}" controls autoplay="{{false}}" object-fit="contain"
+             bindplay="videoPlayed" bindpause="videoPaused" bindended="videoEnded" binderror="videoError" bindloadedmetadata="videoMetadata" />
+      <view wx:else class="film-cover" bindtap="startVideo">
+        <image wx:if="{{video._poster}}" src="{{video._poster}}" mode="aspectFill" lazy-load />
+        <view class="film-shade"></view>
+        <view class="film-action">
+          <view class="play-disc"><view class="play-triangle"></view></view>
+          <view class="film-label">{{videoLoading ? '正在打开短片…' : (videoFailed ? '暂时无法播放 · 点此重试' : '播放我们的短片')}}</view>
+        </view>
+      </view>
+    </view>
+    <view class="film-note serif" wx:if="{{video.note}}">{{video.note}}</view>
+    <view class="film-close" wx:if="{{videoReady}}" bindtap="stopVideo">收起短片</view>
+  </view>
+
+  <view class="empty serif" wx:if="{{!trips.length && !video.src}}">美好的时刻，正在整理中。</view>
+  <view class="ending" wx:if="{{trips.length || video.src}}">
+    <view class="ending-mark">囍</view>
+    <view class="serif">下一段时光，邀你一起见证。</view>
+  </view>
   <view class="pad"></view>
 </view>

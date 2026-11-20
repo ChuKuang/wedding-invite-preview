@@ -3,7 +3,7 @@
   const RPX = 375 / 750;
   const VOID = new Set(['br', 'input', 'image', 'img', 'import', 'include', 'icon', 'wxs']);
   const TAG = {
-    view: 'div', text: 'span', image: 'img', 'scroll-view': 'div', map: 'div',
+    view: 'div', text: 'span', image: 'img', video: 'video', 'scroll-view': 'div', map: 'div',
     swiper: 'div', 'swiper-item': 'div', navigator: 'a', icon: 'i', form: 'div',
     button: 'button', input: 'input', textarea: 'textarea', label: 'label', i: 'i', br: 'br',
   };
@@ -246,6 +246,13 @@
       el.addEventListener('load', (e) => fire(el, 'load', e, { width: el.naturalWidth, height: el.naturalHeight }));
       el.addEventListener('error', (e) => { if (el.__src) fire(el, 'error', e, { errMsg: '图片加载失败' }); });
     }
+    if (v.tag === 'video') {
+      ['play', 'pause', 'ended'].forEach((type) => el.addEventListener(type, (e) => fire(el, type, e)));
+      el.addEventListener('loadedmetadata', (e) => fire(el, 'loadedmetadata', e, { width: el.videoWidth, height: el.videoHeight, duration: el.duration }));
+      el.addEventListener('error', (e) => { if (el.__src) fire(el, 'error', e, { errMsg: '短片播放失败' }); });
+      el.playsInline = true;
+      el.preload = 'none';
+    }
     return el;
   }
 
@@ -270,6 +277,21 @@
     if (p.id && el.id !== p.id) el.id = p.id;
 
     switch (v.tag) {
+      case 'video': {
+        el.controls = p.controls !== false && p.controls !== 'false';
+        el.autoplay = p.autoplay !== undefined && p.autoplay !== false && p.autoplay !== 'false';
+        el.style.objectFit = p['object-fit'] || 'contain';
+        const poster = mapSrc(p.poster);
+        if (el.getAttribute('poster') !== poster) {
+          if (poster) el.setAttribute('poster', poster); else el.removeAttribute('poster');
+        }
+        const src = mapSrc(p.src);
+        if (el.__src !== src) {
+          el.__src = src;
+          if (src) el.src = src; else el.removeAttribute('src');
+        }
+        break;
+      }
       case 'image': {
         el.loading = p['lazy-load'] !== undefined && p['lazy-load'] !== false && p['lazy-load'] !== 'false' ? 'lazy' : 'eager';
         el.decoding = 'async';
@@ -341,8 +363,8 @@
   }
 
   /* ---------------- WXSS → CSS ---------------- */
-  const SEL_TAG = /(^|[\s>+~(,])(view|text|image|scroll-view|swiper-item|swiper|navigator|map)(?=$|[\s>+~.:#\[,)])/g;
-  const SEL_MAP = { view: 'div', text: 'span', image: 'img', 'scroll-view': 'div', 'swiper-item': 'div', swiper: 'div', navigator: 'a', map: 'div' };
+  const SEL_TAG = /(^|[\s>+~(,])(view|text|image|video|scroll-view|swiper-item|swiper|navigator|map)(?=$|[\s>+~.:#\[,)])/g;
+  const SEL_MAP = { view: 'div', text: 'span', image: 'img', video: 'video', 'scroll-view': 'div', 'swiper-item': 'div', swiper: 'div', navigator: 'a', map: 'div' };
 
   function scopeSel(sel, scope) {
     sel = sel.trim();
