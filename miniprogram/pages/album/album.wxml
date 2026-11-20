@@ -15,12 +15,13 @@
     </view>
   </view>
 
-  <!-- 照片流：一屏一张 -->
+  <!-- 保留照片比例，竖图和横图均完整展示 -->
   <view class="mm">
-    <view class="mcard" wx:for="{{trips}}" wx:key="loc">
-      <view class="pic" data-i="{{index}}" bindtap="preview">
-        <image src="{{item.photo}}" mode="aspectFill" lazy-load />
-        <view class="veil"></view>
+    <view class="mcard" wx:for="{{trips}}" wx:key="_key">
+      <view class="pic" style="padding-top: {{item._ratio}}%;" data-i="{{index}}" bindtap="preview">
+        <image src="{{item._photo}}" mode="aspectFit" lazy-load data-i="{{index}}" bindload="photoLoaded" binderror="photoFailed" />
+        <view class="photo-state" wx:if="{{!item._loaded && !item._failed}}">照片加载中</view>
+        <view class="photo-state retry" wx:if="{{item._failed}}" data-i="{{index}}" catchtap="retryPhoto">加载失败 · 点此重试</view>
       </view>
       <view class="b" wx:if="{{item.loc || item.word}}">
         <view class="loc serif" wx:if="{{item.loc}}">{{item.loc}}</view>

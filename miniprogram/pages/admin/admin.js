@@ -1,4 +1,5 @@
 const app = getApp();
+const { prepareAlbumPhoto } = require('../../utils/album-photo.js');
 
 /* ============================================================
    可编辑字段定义
@@ -268,6 +269,11 @@ Page({
     if (!Array.isArray(this.draft.trips)) this.draft.trips = [];
     if (!this.draft.trips[i]) return;
     this.draft.trips[i][k] = value;
+    if (k === 'photo') {
+      // 手动替换地址时清掉上一张照片的缩略图和尺寸。
+      Object.assign(this.draft.trips[i], { thumb: '', width: 0, height: 0 });
+      this.setData({ [`trips[${i}].thumb`]: '', [`trips[${i}].width`]: 0, [`trips[${i}].height`]: 0 });
+    }
     this.setData({ [`trips[${i}].${k}`]: value });
   },
 
@@ -302,6 +308,10 @@ Page({
       success: (r) => {
         const file = r.tempFiles[0];
         wx.showLoading({ title: '上传中', mask: true });
+        if (tk === 'photo') {
+          this.uploadAlbumPhoto(ti, file.tempFilePath);
+          return;
+        }
         // 签名：先裁掉四周的空白，免得字在框里被缩得很小
         const prep = it && it.trim ? this.trimImage(file.tempFilePath) : Promise.resolve(file.tempFilePath);
         prep
@@ -323,6 +333,30 @@ Page({
           });
       },
     });
+  },
+
+  async uploadAlbumPhoto(i, src) {
+    const uploaded = [];
+    let notice = '已上传，记得保存';
+    try {
+      const prepared = await prepareAlbumPhoto(src);
+      const prefix = `uploads/album/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      for (const kind of ['photo', 'thumb']) {
+        const up = await wx.cloud.uploadFile({ cloudPath: `${prefix}-${kind}.${prepared[kind].extension}`, filePath: prepared[kind].filePath });
+        uploaded.push(up.fileID);
+      }
+      if (!this.draft.trips[i]) throw new Error('照片已移除，请重新添加');
+      Object.assign(this.draft.trips[i], { photo: uploaded[0], thumb: uploaded[1],
+        width: prepared.thumb.width, height: prepared.thumb.height });
+      this.setData({ [`trips[${i}]`]: clone(this.draft.trips[i]) });
+    } catch (err) {
+      if (uploaded.length && wx.cloud.deleteFile) {
+        await wx.cloud.deleteFile({ fileList: uploaded }).catch(() => {});
+      }
+      console.warn('相册上传失败', err);
+      notice = err.message || '上传失败，请重试';
+    } finally { wx.hideLoading(); }
+    wx.showToast({ title: notice, icon: 'none' });
   },
 
   // 裁掉图片四周的透明/近白边，返回新图路径；任何一步失败就用原图
@@ -459,6 +493,9 @@ Page({
     const cfg = clone(this.draft);
     cfg.trips = (cfg.trips || []).map((t) => ({
       photo: String(t.photo || '').trim(),
+      thumb: String(t.thumb || '').trim(),
+      width: Number(t.width) > 0 && Number.isFinite(Number(t.width)) ? Number(t.width) : 0,
+      height: Number(t.height) > 0 && Number.isFinite(Number(t.height)) ? Number(t.height) : 0,
       loc: String(t.loc || '').trim(),
       word: String(t.word || '').trim(),
     }));

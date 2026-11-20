@@ -242,6 +242,10 @@
       });
     }
     if (v.tag === 'button') el.type = 'button';
+    if (v.tag === 'image') {
+      el.addEventListener('load', (e) => fire(el, 'load', e, { width: el.naturalWidth, height: el.naturalHeight }));
+      el.addEventListener('error', (e) => { if (el.__src) fire(el, 'error', e, { errMsg: '图片加载失败' }); });
+    }
     return el;
   }
 
@@ -267,6 +271,8 @@
 
     switch (v.tag) {
       case 'image': {
+        el.loading = p['lazy-load'] !== undefined && p['lazy-load'] !== false && p['lazy-load'] !== 'false' ? 'lazy' : 'eager';
+        el.decoding = 'async';
         const s = mapSrc(p.src);
         if (el.__src !== s) {
           el.__src = s;

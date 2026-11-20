@@ -81,7 +81,7 @@ module.exports = {
 
   /* ---------- 相册（日常、旅行都行；后台「相册」分区可直接上传） ---------- */
   trips: [
-    { photo: '/images/photos/trip1.jpg', loc: '青海湖 · 2021.07', word: '那天风大到说不出话，他把外套裹在我身上，我们就在湖边坐到天黑。' },
+    { photo: '/images/photos/xcxc2620-preview.jpg', thumb: '/images/photos/xcxc2620-thumb.jpg', width: 800, height: 1200, loc: '', word: '' },
     { photo: '/images/photos/trip2.jpg', loc: '四姑娘山 · 2022.10', word: '海拔 4200 米，我走不动了。他说「再坚持十分钟」，然后背着我走了半小时。' },
     { photo: '/images/photos/trip3.jpg', loc: '泉州老巷 · 2023.04', word: '迷路走进一条没人的巷子，有家面线糊，老板多给了两个卤蛋。' },
     { photo: '/images/photos/trip4.jpg', loc: '独库公路 · 2024.08', word: '一天里过了四季。车里循环播放同一首歌，到家后我再也没听过。' },

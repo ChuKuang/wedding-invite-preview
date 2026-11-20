@@ -379,6 +379,14 @@
     writeFileSync(path, data) { memfs[path] = data; },
     writeFile(o) { memfs[o.filePath] = o.data; later(() => cb(o, true, {})); },
     readFileSync(path) { if (!(path in memfs)) throw new Error('no such file ' + path); return memfs[path]; },
+    stat(o) {
+      if (/^data:/.test(o.path)) {
+        const payload = o.path.split(',')[1] || '';
+        const size = Math.floor(payload.length * 3 / 4) - (payload.endsWith('==') ? 2 : payload.endsWith('=') ? 1 : 0);
+        cb(o, true, { stats: { size } });
+      } else if (o.path in memfs) cb(o, true, { stats: { size: new Blob([memfs[o.path]]).size } });
+      else cb(o, false, { errMsg: 'stat:fail file not found' });
+    },
   };
   function shareFileMessage(o) {
     if (!(o.filePath in memfs)) return cb(o, false, { errMsg: 'shareFileMessage:fail file not found' });
@@ -398,12 +406,17 @@
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    input.oncancel = () => { input.remove(); cb(o, false, { errMsg: 'chooseMedia:fail cancel' }); };
     input.onchange = () => {
       const file = input.files[0];
+      input.remove();
       if (!file) return cb(o, false, { errMsg: 'chooseMedia:fail cancel' });
       const img = new Image();
       img.onload = () => {
-        const k = Math.min(1, 1200 / Math.max(img.width, img.height));
+        const edge = (o.sizeType || []).includes('original') ? Infinity : 2000;
+        const k = Math.min(1, edge / Math.max(img.width, img.height));
         const cv = document.createElement('canvas');
         cv.width = Math.round(img.width * k);
         cv.height = Math.round(img.height * k);
@@ -414,6 +427,7 @@
         URL.revokeObjectURL(img.src);
         cb(o, true, { type: 'image', tempFiles: [{ tempFilePath: url, size: url.length, fileType: 'image' }] });
       };
+      img.onerror = () => { URL.revokeObjectURL(img.src); cb(o, false, { errMsg: 'chooseMedia:fail 图片无法读取' }); };
       img.src = URL.createObjectURL(file);
     };
     input.click();
@@ -470,8 +484,26 @@
     getRecorderManager: recorderManager,
     getImageInfo(o) {
       const img = new Image();
-      img.onload = () => cb(o, true, { width: img.naturalWidth, height: img.naturalHeight, path: o.src });
+      img.onload = () => cb(o, true, { width: img.naturalWidth, height: img.naturalHeight, path: o.src, orientation: 'up', type: /^data:image\/png/.test(o.src) ? 'png' : 'jpeg' });
       img.onerror = () => cb(o, false, { errMsg: 'getImageInfo:fail' });
+      img.src = o.src;
+    },
+    compressImage(o) {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const scale = Math.min(1, (o.compressedWidth || img.naturalWidth) / img.naturalWidth,
+            (o.compressedHeight || img.naturalHeight) / img.naturalHeight);
+          const cv = document.createElement('canvas');
+          cv.width = Math.max(1, Math.round(img.naturalWidth * scale));
+          cv.height = Math.max(1, Math.round(img.naturalHeight * scale));
+          const ctx = cv.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+          ctx.drawImage(img, 0, 0, cv.width, cv.height);
+          cb(o, true, { tempFilePath: cv.toDataURL('image/jpeg', (o.quality === undefined ? 80 : o.quality) / 100) });
+        } catch (e) { cb(o, false, { errMsg: 'compressImage:fail ' + e.message }); }
+      };
+      img.onerror = () => cb(o, false, { errMsg: 'compressImage:fail 图片无法读取' });
       img.src = o.src;
     },
     createOffscreenCanvas(opt) {
